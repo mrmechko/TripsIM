@@ -20,7 +20,7 @@ def findFuncs(dir):
             if file != file2:
                 uses = []
                 for function in functions:
-                    if text.find(function) != -1:
+                    if text.find("(" + function + " ") != -1 or text.find("(" + function + "(") != -1:
                         uses.append(function)
                 if len(uses) > 0:
                     print("\t uses " + file2 + " with functions: ")
