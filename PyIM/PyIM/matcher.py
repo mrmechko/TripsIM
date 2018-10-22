@@ -18,6 +18,9 @@ class TripsNode:
         self.positionals = positionals
         self.kvpairs = kvpairs
 
+    def __repr__(self):
+        return "Positionals: " + str(self.positionals) + "\nKey-value pairs: " + str(self.kvpairs)
+
 
 class Element:
     def match(self, other) -> bool:
@@ -81,7 +84,7 @@ class Rule:
         p = self._score_positionals(tripsnode)
         kv= self._score_kvpairs(tripsnode)
 
-        return p + k
+        return p + kv
 
 def get_element(e):
     if e[0] == "?":
@@ -89,9 +92,9 @@ def get_element(e):
     return Term(e)
 
 def load_list(values, typ=TripsNode):
-    positional = []
+    positionals = []
     kvpair = {}
-    tokens = values.strip().split()
+    tokens = values.strip().replace('(', '').replace(')', '').split()
     state = 0
     while tokens:
         t = tokens.pop()
@@ -106,4 +109,5 @@ def load_list(values, typ=TripsNode):
                     raise ValueError("Not enough values")
                 value = tokens.pop()
                 kvpair[get_element(t)] = get_element(value)
-    return typ(positionals, kvpair)
+                positionals.append(get_element(value))
+    return (positionals, kvpair)
