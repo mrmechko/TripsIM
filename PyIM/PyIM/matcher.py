@@ -11,6 +11,8 @@ A rule set is a list of rules.  A rule set is satisfied by a trips parse if
 there is a one-to-one mapping from the rules to the nodes where all variable assignments
 are consistent.
 """
+import re
+from difflib import SequenceMatcher
 
 
 class TripsNode:
@@ -18,10 +20,14 @@ class TripsNode:
         self.positionals = positionals
         self.kvpairs = kvpairs
 
+    def __repr__(self):
+        return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
+
 
 class Element:
     def match(self, other) -> bool:
         return self == other
+
 
 class Variable(Element):
     def __init__(self, name):
@@ -40,8 +46,9 @@ class Variable(Element):
             return True
         return False
 
+
 class Term(Element):
-    #TODO: check inheritance
+    # TODO: check inheritance
     def __init__(self, value):
         self.value = value
 
@@ -58,40 +65,95 @@ class Term(Element):
             return True
         return False
 
+
 class Rule:
     def __init__(self, positionals, kvpairs):
-            self.positionals = positionals
-            self.kvpairs = kvpairs
+        self.positionals = positionals
+        self.kvpairs = kvpairs
 
-    def _score_positionals(self, tnode : TripsNode) -> int: #TODO: missing positionals
-        return sum([r.match(t) for r, t in zip(self.positionals, tnode.positionals)])
+    def __init__(self, tnode: TripsNode):
+        self.positionals = tnode.positionals
+        self.kvpairs = tnode.kvpairs
+
+    def __repr__(self):
+        return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
+
+    def _score_positionals(self, tnode: TripsNode) -> int:  # TODO: missing positionals
+        # return sum([r.match(t) for r, t in zip(self.positionals, tnode.positionals)])
+        # j = 0
+        # last = 0
+        # sum = 0
+        # for i in range(len(self.positionals)):
+        #     item = self.positionals[i]
+        #     if item in tnode.positionals[last:]:
+        #         j = tnode.positionals.index(item, last)
+        #         last = j
+        #         sum += 1
+        # return sum
+        return SequenceMatcher(None, self.positionals, tnode.positionals).ratio()
+
+    def match_vars(self, tnode: TripsNode, var_term):
+        """
+        :param tnode:
+        :param var_term:
+        :return:
+        """
+        ''' Match variables in positionals '''
+        for r, t in zip(self.positionals, tnode.positionals):
+            if isinstance(r, Variable):
+                if r in var_term:
+                    var_term[r].append(t)
+                else:
+                    var_term[r] = [t]
+        ''' Match variable in kvpairs '''
+        for k, v in self.kvpairs.items():
+            if k in tnode.kvpairs and isinstance(v, Variable):  # TODO: if k not found in tnode.kvpair?
+                if v in var_term:
+                    var_term[v].append(tnode.kvpairs[k])
+                else:
+                    var_term[v] = [tnode.kvpairs[k]]
 
     def _score_kvpairs(self, tnode: TripsNode) -> int:
         count = 0
+        avg_len = (len(self.kvpairs) + len(tnode.kvpairs)) / 2
         for k, v in self.kvpairs.items():
             if k in tnode.kvpairs and v == tnode.kvpairs[k]:
                 count += 1
-        return count
+        return count / avg_len
 
-
-    def score(self, tripsnode : TripsNode) -> int:
+    def score(self, tripsnode: TripsNode) -> float:
         # positionals
-        #if len(self.positionals) != len(tripsnode.positionals): #TODO
+        # if len(self.positionals) != len(tripsnode.positionals): #TODO
         #    return False
         p = self._score_positionals(tripsnode)
-        kv= self._score_kvpairs(tripsnode)
+        kv = self._score_kvpairs(tripsnode)
+        return (p + kv) / 2
 
-        return p + k
 
 def get_element(e):
     if e[0] == "?":
         return Variable(e)
     return Term(e)
 
+
+def load_list_set(lf):
+    """
+    :param lf: string in logical form
+        e.g. ((ONT::SPEECHACT ?x ONT::SA_REQUEST :CONTENT ?!theme)(ONT::F ?!theme ?type :force ?f)
+        lf might contain several rules
+    :return: the list of Rule objects
+    """
+    rules = re.split(r'\)[^\S\n\t]+\(', lf)
+    rules = [rip_parens(x) for x in rules]
+    rules = [load_list(x) for x in rules]
+    return rules
+
+
 def load_list(values, typ=TripsNode):
-    positional = []
+    positionals = []
     kvpair = {}
     tokens = values.strip().split()
+    tokens.reverse()
     state = 0
     while tokens:
         t = tokens.pop()
@@ -107,3 +169,66 @@ def load_list(values, typ=TripsNode):
                 value = tokens.pop()
                 kvpair[get_element(t)] = get_element(value)
     return typ(positionals, kvpair)
+
+
+def rip_parens(input):
+    """
+    :param input: string in logical form
+    :return: string without parens
+    """
+    return input.replace('(', ' ').replace(')', ' ')
+
+
+def match_set(rule_set, tparse):
+    """
+    :param rule_set:
+    :param tparse:
+    :return: a score indicating the goodness of fit given the rule set and trips parse
+
+    How to score a match:
+        Unmatched positionals
+        Inconsistent variable assignment
+
+    """
+    ''' Match each rule to a tnode '''
+    rule_tnode = {}
+    ''' Globally match variables to terms. key: variable; value: a list of assignments'''
+    var_term = {}
+    ''' Find the best matching pairs of rule and tnode'''
+    for rule in rule_set:
+        rule = Rule(rule)
+        max = 0
+        for tnode in tparse:
+            if rule.score(tnode) > max:
+                rule_tnode[rule] = tnode
+    ''' Dealing with variable assignments '''
+    for rule, tnode in rule_tnode.items():
+        rule.match_vars(tnode, var_term)
+
+    print(var_term)
+    return 0
+
+
+if __name__ == '__main__':
+    rule_set1 = '((ONT::SPEECHACT ONT::SA_REQUEST :CONTENT ?!theme) ' \
+                '(ONT::F ?!theme ?type :force ?f)'
+    rule_set1 = load_list_set(rule_set1)
+    print(rule_set1)
+    parse1 = '((ONT::SPEECHACT ONT::SA_REQUEST :CONTENT some-content) ' \
+             '(ONT::F something some-content :force some-force :AGENT some-agent)'
+    parse1 = load_list_set(parse1)
+    parse2 = ''' 
+        ((ONT::SPEECHACT ONT::V1201749 SA_TELL :CONTENT ONT::V1201586 :LEX ONT::BUY)
+        (ONT::F ONT::V1201586 (:* ONT::PURCHASE W::BUY) :AGENT ONT::V1201750 :AFFECTED ONT::V1201632 :BENEFICIARY ONT::V1201590 :TENSE ONT::PRES :LEX ONT::BUY)
+        (ONT::IMPRO ONT::V1201750 REFERENTIAL-SEM :PROFORM ONT::SUBJ)
+        (ONT::PRO ONT::V1201590 (:* ONT::PERSON W::ME) :PROFORM ONT::ME :LEX ONT::ME :COREF ONT::USER)
+        (ONT::A ONT::V1201632 (:* ONT::COMPUTER-TYPE W::LAPTOP) :LEX ONT::LAPTOP)
+        )'''
+
+    parse3 = '''
+    ((ONT::SPEECHACT ONT::V1201749 SA_TELL :CONTENT ONT::V1201586 :LEX ONT::BUY)
+    (ONT::F ONT::V1201586 (:* ONT::PURCHASE W::BUY)
+    '''
+
+    # print((Rule(rule_set1[0]).score(parse1[0])))
+    match_set(rule_set1, parse1)
