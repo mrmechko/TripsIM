@@ -12,7 +12,6 @@ there is a one-to-one mapping from the rules to the nodes where all variable ass
 are consistent.
 """
 import re
-from difflib import SequenceMatcher
 
 
 class TripsNode:
@@ -79,18 +78,38 @@ class Rule:
         return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
 
     def _score_positionals(self, tnode: TripsNode) -> int:  # TODO: missing positionals
+        '''
+        :param tnode:
+        :return: the number of matched positionals
+        '''
         # return sum([r.match(t) for r, t in zip(self.positionals, tnode.positionals)])
-        # j = 0
-        # last = 0
-        # sum = 0
-        # for i in range(len(self.positionals)):
-        #     item = self.positionals[i]
-        #     if item in tnode.positionals[last:]:
-        #         j = tnode.positionals.index(item, last)
-        #         last = j
-        #         sum += 1
-        # return sum
-        return SequenceMatcher(None, self.positionals, tnode.positionals).ratio()
+        j = 0
+        last = 0
+        sum = 0
+        for i in range(len(self.positionals)):
+            item = self.positionals[i]
+            if item in tnode.positionals[last:]:
+                j = tnode.positionals.index(item, last)
+                last = j
+                sum += 1
+        return sum
+        # return SequenceMatcher(None, self.positionals, tnode.positionals).ratio()
+
+    def _score_kvpairs(self, tnode: TripsNode) -> int:
+        count = 0
+        for k, v in self.kvpairs.items():
+            if k in tnode.kvpairs and v == tnode.kvpairs[k]:
+                count += 1
+        return count
+
+    def score(self, tripsnode: TripsNode) -> float:
+        # positionals
+        # if len(self.positionals) != len(tripsnode.positionals): #TODO
+        #    return False
+        p = self._score_positionals(tripsnode)
+        kv = self._score_kvpairs(tripsnode)
+        print(p, kv)
+        return (p + kv) / (len(self.positionals) + len(self.kvpairs))
 
     def match_vars(self, tnode: TripsNode, var_term):
         """
@@ -112,22 +131,6 @@ class Rule:
                     var_term[v].append(tnode.kvpairs[k])
                 else:
                     var_term[v] = [tnode.kvpairs[k]]
-
-    def _score_kvpairs(self, tnode: TripsNode) -> int:
-        count = 0
-        avg_len = (len(self.kvpairs) + len(tnode.kvpairs)) / 2
-        for k, v in self.kvpairs.items():
-            if k in tnode.kvpairs and v == tnode.kvpairs[k]:
-                count += 1
-        return count / avg_len
-
-    def score(self, tripsnode: TripsNode) -> float:
-        # positionals
-        # if len(self.positionals) != len(tripsnode.positionals): #TODO
-        #    return False
-        p = self._score_positionals(tripsnode)
-        kv = self._score_kvpairs(tripsnode)
-        return (p + kv) / 2
 
 
 def get_element(e):
@@ -179,13 +182,13 @@ def rip_parens(input):
     return input.replace('(', ' ').replace(')', ' ')
 
 
-def match_set(rule_set, tparse):
+def score_set(rule_set, tparse):
     """
     :param rule_set:
     :param tparse:
     :return: a score indicating the goodness of fit given the rule set and trips parse
 
-    How to score a match:
+    Score a match:
         Unmatched positionals
         Inconsistent variable assignment
 
@@ -207,28 +210,3 @@ def match_set(rule_set, tparse):
 
     print(var_term)
     return 0
-
-
-if __name__ == '__main__':
-    rule_set1 = '((ONT::SPEECHACT ONT::SA_REQUEST :CONTENT ?!theme) ' \
-                '(ONT::F ?!theme ?type :force ?f)'
-    rule_set1 = load_list_set(rule_set1)
-    print(rule_set1)
-    parse1 = '((ONT::SPEECHACT ONT::SA_REQUEST :CONTENT some-content) ' \
-             '(ONT::F something some-content :force some-force :AGENT some-agent)'
-    parse1 = load_list_set(parse1)
-    parse2 = ''' 
-        ((ONT::SPEECHACT ONT::V1201749 SA_TELL :CONTENT ONT::V1201586 :LEX ONT::BUY)
-        (ONT::F ONT::V1201586 (:* ONT::PURCHASE W::BUY) :AGENT ONT::V1201750 :AFFECTED ONT::V1201632 :BENEFICIARY ONT::V1201590 :TENSE ONT::PRES :LEX ONT::BUY)
-        (ONT::IMPRO ONT::V1201750 REFERENTIAL-SEM :PROFORM ONT::SUBJ)
-        (ONT::PRO ONT::V1201590 (:* ONT::PERSON W::ME) :PROFORM ONT::ME :LEX ONT::ME :COREF ONT::USER)
-        (ONT::A ONT::V1201632 (:* ONT::COMPUTER-TYPE W::LAPTOP) :LEX ONT::LAPTOP)
-        )'''
-
-    parse3 = '''
-    ((ONT::SPEECHACT ONT::V1201749 SA_TELL :CONTENT ONT::V1201586 :LEX ONT::BUY)
-    (ONT::F ONT::V1201586 (:* ONT::PURCHASE W::BUY)
-    '''
-
-    # print((Rule(rule_set1[0]).score(parse1[0])))
-    match_set(rule_set1, parse1)
