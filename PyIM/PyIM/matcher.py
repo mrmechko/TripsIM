@@ -82,7 +82,6 @@ class Rule:
         :param tnode:
         :return: the number of matched positionals
         '''
-        # return sum([r.match(t) for r, t in zip(self.positionals, tnode.positionals)])
         j = 0
         last = 0
         sum = 0
@@ -93,7 +92,6 @@ class Rule:
                 last = j
                 sum += 1
         return sum
-        # return SequenceMatcher(None, self.positionals, tnode.positionals).ratio()
 
     def _score_kvpairs(self, tnode: TripsNode) -> int:
         count = 0
@@ -103,13 +101,9 @@ class Rule:
         return count
 
     def score(self, tripsnode: TripsNode) -> float:
-        # positionals
-        # if len(self.positionals) != len(tripsnode.positionals): #TODO
-        #    return False
         p = self._score_positionals(tripsnode)
         kv = self._score_kvpairs(tripsnode)
-        print(p, kv)
-        return (p + kv) / (len(self.positionals) + len(self.kvpairs))
+        return p + kv
 
     def match_vars(self, tnode: TripsNode, var_term):
         """
@@ -131,6 +125,7 @@ class Rule:
                     var_term[v].append(tnode.kvpairs[k])
                 else:
                     var_term[v] = [tnode.kvpairs[k]]
+        return var_term
 
 
 def get_element(e):
@@ -186,13 +181,11 @@ def score_set(rule_set, tparse):
     """
     :param rule_set:
     :param tparse:
-    :return: a score indicating the goodness of fit given the rule set and trips parse
-
-    Score a match:
-        Unmatched positionals
-        Inconsistent variable assignment
+    :return: unnormalized score
 
     """
+    match_score = 0
+    var_score = 0
     ''' Match each rule to a tnode '''
     rule_tnode = {}
     ''' Globally match variables to terms. key: variable; value: a list of assignments'''
@@ -207,6 +200,23 @@ def score_set(rule_set, tparse):
     ''' Dealing with variable assignments '''
     for rule, tnode in rule_tnode.items():
         rule.match_vars(tnode, var_term)
+        match_score += rule.score(tnode)
+    for var, terms in var_term.items():
+        max_term, freq = most_common(terms)
+        var_score += freq / len(terms)
+    return match_score + var_score
 
-    print(var_term)
-    return 0
+
+def accuracy(rule_set, tparse):
+    """
+    The actual function that gives the score of a trips parse against a rule set
+    :param rule_set:
+    :param tparse:
+    :return: score (normalized against the score of rule set itself)
+    """
+    return score_set(rule_set, tparse) / score_set(rule_set, rule_set)
+
+
+def most_common(list):
+    item = max(set(list), key=list.count)
+    return item, list.count(item)
