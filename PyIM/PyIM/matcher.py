@@ -66,13 +66,16 @@ class Term(Element):
 
 
 class Rule:
-    def __init__(self, positionals, kvpairs):
-        self.positionals = positionals
-        self.kvpairs = kvpairs
 
-    def __init__(self, tnode: TripsNode):
-        self.positionals = tnode.positionals
-        self.kvpairs = tnode.kvpairs
+    def __init__(self, positionals=None, kvpairs=None, tnode=None):
+        if tnode:
+            self.positionals = tnode.positionals
+            self.kvpairs = tnode.kvpairs
+        elif positionals and kvpairs:
+            self.positionals = positionals
+            self.kvpairs = kvpairs
+        else:
+            raise NameError("Has to provide either (positional, kvpairs) or a tnode")
 
     def __repr__(self):
         return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
@@ -109,7 +112,7 @@ class Rule:
         """
         :param tnode:
         :param var_term:
-        :return:
+        :return: a dict of matched varaibles and terms {var: term}
         """
         ''' Match variables in positionals '''
         for r, t in zip(self.positionals, tnode.positionals):
@@ -192,7 +195,7 @@ def score_set(rule_set, tparse):
     var_term = {}
     ''' Find the best matching pairs of rule and tnode'''
     for rule in rule_set:
-        rule = Rule(rule)
+        rule = Rule(tnode=rule)
         max = 0
         for tnode in tparse:
             if rule.score(tnode) > max:
