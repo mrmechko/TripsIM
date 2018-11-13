@@ -1,3 +1,4 @@
+import ontologytools as ont
 """
 A trips node is defined as a list of strings with some number of positionals
 followed by a sequence of key-value pairs.  A trips parse is a list of nodes.
@@ -11,7 +12,6 @@ A rule set is a list of rules.  A rule set is satisfied by a trips parse if
 there is a one-to-one mapping from the rules to the nodes where all variable assignments
 are consistent.
 """
-
 
 class TripsNode:
     def __init__(self, positionals, kvpairs):
@@ -56,7 +56,7 @@ class Term(Element):
 
     def __eq__(self, other):
         if type(other) is Term:
-            return self.value == other.value
+            return (ont.isAncestor(other, self) or ont.isAncestor(self, other))
         elif type(other) is Variable:
             return True
         return False
