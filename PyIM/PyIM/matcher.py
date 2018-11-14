@@ -20,13 +20,7 @@ class TripsNode:
         self.kvpairs = kvpairs
 
     def __repr__(self):
-<<<<<<< HEAD
-        return "Positionals: " + str(self.positionals) + "\nKey-value pairs: " + str(self.kvpairs)
-=======
         return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
->>>>>>> yujie-branch
-
-
 class Element:
     def match(self, other) -> bool:
         return self == other
@@ -134,11 +128,6 @@ class Rule:
                     var_term[v] = [tnode.kvpairs[k]]
         return var_term
 
-<<<<<<< HEAD
-        return p + kv
-=======
->>>>>>> yujie-branch
-
 def get_element(e):
     if e[0] == "?":
         return Variable(e)
@@ -161,12 +150,8 @@ def load_list_set(lf):
 def load_list(values, typ=TripsNode):
     positionals = []
     kvpair = {}
-<<<<<<< HEAD
-    tokens = values.strip().replace('(', '').replace(')', '').split()
-=======
     tokens = values.strip().split()
     tokens.reverse()
->>>>>>> yujie-branch
     state = 0
     while tokens:
         t = tokens.pop()
@@ -181,10 +166,6 @@ def load_list(values, typ=TripsNode):
                     raise ValueError("Not enough values")
                 value = tokens.pop()
                 kvpair[get_element(t)] = get_element(value)
-<<<<<<< HEAD
-                positionals.append(get_element(value))
-    return (positionals, kvpair)
-=======
     return typ(positionals, kvpair)
 
 
@@ -239,4 +220,3 @@ def accuracy(rule_set, tparse):
 def most_common(list):
     item = max(set(list), key=list.count)
     return item, list.count(item)
->>>>>>> yujie-branch
