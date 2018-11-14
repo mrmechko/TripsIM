@@ -1,4 +1,5 @@
-import ontologytools as ont
+import IM.PyIM.ontologytools as ont
+
 """
 A trips node is defined as a list of strings with some number of positionals
 followed by a sequence of key-value pairs.  A trips parse is a list of nodes.
@@ -14,6 +15,7 @@ are consistent.
 """
 import re
 
+
 class TripsNode:
     def __init__(self, positionals, kvpairs):
         self.positionals = positionals
@@ -21,6 +23,8 @@ class TripsNode:
 
     def __repr__(self):
         return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
+
+
 class Element:
     def match(self, other) -> bool:
         return self == other
@@ -57,7 +61,7 @@ class Term(Element):
 
     def __eq__(self, other):
         if type(other) is Term:
-            return (ont.isAncestor(other, self) or ont.isAncestor(self, other))
+            return ont.isAncestor(other, self) or ont.isAncestor(self, other)
         elif type(other) is Variable:
             return True
         return False
@@ -127,6 +131,7 @@ class Rule:
                 else:
                     var_term[v] = [tnode.kvpairs[k]]
         return var_term
+
 
 def get_element(e):
     if e[0] == "?":

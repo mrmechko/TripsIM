@@ -1,8 +1,12 @@
 import json
 import copy
+import sys
+import os.path as osp
 
 def loadont(pathName):
     # Put ontology in a dictionary so we can index by name of word
+
+    pathName = osp.join(osp.abspath('../data'), pathName)
     ont = {}
     for i in json.load(open(pathName)):
         ont[i["name"]] = i
@@ -21,7 +25,11 @@ def loadont(pathName):
 
 # Is a an ancestor of b?
 def isAncestor(a, b):
-    return a in ont[b]["ancestors"]
+    try:
+        return a in ont[b]["ancestors"]
+    except:
+        sys.stderr.write('{} not an entry in ontology\n'.format(b))
+        return False
 
 # Is a a child of b?
 def isChild(a, b):
