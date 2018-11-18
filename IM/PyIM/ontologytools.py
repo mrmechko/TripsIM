@@ -3,6 +3,7 @@ import copy
 import sys
 import os.path as osp
 
+
 def loadont(pathName):
     # Put ontology in a dictionary so we can index by name of word
 
@@ -10,7 +11,6 @@ def loadont(pathName):
     ont = {}
     for i in json.load(open(pathName)):
         ont[i["name"]] = i
-
     # Precompute ancestory relationship
     for word, entry in ont.items():
         ancestors = []
@@ -20,20 +20,27 @@ def loadont(pathName):
             ancestors.append(ont[child]["parent"])
             child = ont[child]["parent"]
         ont[word]["ancestors"] = ancestors
-        
+
     return ont
+
 
 # Is a an ancestor of b?
 def isAncestor(a, b):
+    if not isinstance(a, str):
+        a = a.value
+    if not isinstance(b, str):
+        b = b.value
     try:
         return a in ont[b]["ancestors"]
     except:
         sys.stderr.write('{} not an entry in ontology\n'.format(b))
         return False
 
+
 # Is a a child of b?
 def isChild(a, b):
     return isAncestor(b, a)
+
 
 # How far away is a from b?
 def distance(a, b):
@@ -50,7 +57,7 @@ def distance(a, b):
     i = 0
     while i < len(ancestorsA) and i < len(ancestorsB) and ancestorsA[i] == ancestorsB[i]:
         i += 1
-    lowestCommonAncestor = ancestorsA[i-1]
+    lowestCommonAncestor = ancestorsA[i - 1]
     # Next compute distance of lowest ancestor to a and b, and add them
     return distance(a, lowestCommonAncestor) + distance(b, lowestCommonAncestor)
 
@@ -64,10 +71,13 @@ class Argument:
         self.implements = entry["implements"]
 
     def __repr__(self):
-        return ("role: " + str(self.role) + ", restrictions: " + str(self.restrictions) + ", optionality: " + str(self.optionality) + ", implements: " + str(self.implements))
+        return ("role: " + str(self.role) + ", restrictions: " + str(self.restrictions) + ", optionality: " + str(
+            self.optionality) + ", implements: " + str(self.implements))
 
     def __eq__(self, other):
-        return (self.role == other.role and self.restrictions == other.restrictions and self.optionality == other.optionality and self.implements == other.implements)
+        return (
+                    self.role == other.role and self.restrictions == other.restrictions and self.optionality == other.optionality and self.implements == other.implements)
+
 
 # Returns all of the arguments for a given entry
 def getArguments(entry):
@@ -80,5 +90,6 @@ def test():
     assert distance("MELODY", "MUSIC-MOVEMENT") == 2
     assert distance("MELODY", "DEFINITION") == 4
     assert getArguments("FULLNAME") == [Argument(ont["FULLNAME"]["arguments"][0])]
+
 
 ont = loadont("ontology.json")

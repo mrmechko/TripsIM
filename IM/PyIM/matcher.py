@@ -61,7 +61,7 @@ class Term(Element):
 
     def __eq__(self, other):
         if type(other) is Term:
-            return ont.isAncestor(other, self) or ont.isAncestor(self, other)
+            return self.value == other.value or ont.isAncestor(other, self) or ont.isAncestor(self, other)
         elif type(other) is Variable:
             return True
         return False
@@ -209,6 +209,7 @@ def score_set(rule_set, tparse):
     for var, terms in var_term.items():
         max_term, freq = most_common(terms)
         var_score += freq / len(terms)
+    print(match_score + var_score)
     return match_score + var_score
 
 
