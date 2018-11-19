@@ -252,16 +252,15 @@ def element_to_rule(e, rule_set):
     :param rule_set:
     :return:
     '''
+    if isinstance(e, Term):
+        name2 = e.value
+    else:
+        name2 = e.name
     for rule in rule_set:
         if isinstance(rule.positionals[1], Term):
             name = rule.positionals[1].value
         else:
             name = rule.positionals[1].name
-
-        if isinstance(e, Term):
-            name2 = e.value
-        else:
-            name2 = e.name
         if name == name2:
             return rule
     for rule in rule_set:
@@ -286,14 +285,20 @@ def element_mapping(map, rule_set):
     element_map = {}
     mapped_rule_set = []
     new_map = {}
+    ''' get element-wise mapping '''
     for rule in rule_set:
         if rule in map:
             element_map[rule_to_element(rule)] = rule_to_element(map[rule])
+    ''' translate the rule set '''
     for rule in rule_set:
         if rule not in map:
             break
         temp = Rule(positionals=[], kvpairs={})
         for pos in rule.positionals:
+            ''' 
+            Variables that cannot be mapped to a rule and Terms are stored as-is;
+            Variables not in current mapping are ignored
+            '''
             if isinstance(pos, Term) or not element_to_rule(pos, rule_set):
                 temp.positionals.append(pos)
             elif pos in element_map:
