@@ -1,3 +1,4 @@
+import re
 import IM.PyIM.ontologytools as ont
 
 """
@@ -13,7 +14,6 @@ A rule set is a list of rules.  A rule set is satisfied by a trips parse if
 there is a one-to-one mapping from the rules to the nodes where all variable assignments
 are consistent.
 """
-import re
 
 
 class TripsNode:
@@ -73,20 +73,18 @@ class Rule:
         if tnode:
             self.positionals = tnode.positionals
             self.kvpairs = tnode.kvpairs
-        elif positionals and kvpairs:
+        else:
             self.positionals = positionals
             self.kvpairs = kvpairs
-        else:
-            raise NameError("Has to provide either (positional, kvpairs) or a tnode")
 
     def __repr__(self):
         return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
 
     def _score_positionals(self, tnode: TripsNode) -> int:  # TODO: missing positionals
-        '''
+        """
         :param tnode:
-        :return: the number of matched positionals
-        '''
+        :return: number of positionals in Rule that have matches in tnode.positionals
+        """
         j = 0
         last = 0
         sum = 0
@@ -94,7 +92,7 @@ class Rule:
             item = self.positionals[i]
             if item in tnode.positionals[last:]:
                 j = tnode.positionals.index(item, last)
-                last = j
+                last = j + 1
                 sum += 1
         return sum
 
@@ -110,28 +108,6 @@ class Rule:
         kv = self._score_kvpairs(tripsnode)
         return p + kv
 
-    def match_vars(self, tnode: TripsNode, var_term):
-        """
-        :param tnode:
-        :param var_term:
-        :return: a dict of matched varaibles and terms {var: term}
-        """
-        ''' Match variables in positionals '''
-        for r, t in zip(self.positionals, tnode.positionals):
-            if isinstance(r, Variable):
-                if r in var_term:
-                    var_term[r].append(t)
-                else:
-                    var_term[r] = [t]
-        ''' Match variable in kvpairs '''
-        for k, v in self.kvpairs.items():
-            if k in tnode.kvpairs and isinstance(v, Variable):  # TODO: if k not found in tnode.kvpair?
-                if v in var_term:
-                    var_term[v].append(tnode.kvpairs[k])
-                else:
-                    var_term[v] = [tnode.kvpairs[k]]
-        return var_term
-
 
 def get_element(e):
     if e[0] == "?":
@@ -145,6 +121,7 @@ def load_list_set(lf):
         e.g. ((ONT::SPEECHACT ?x ONT::SA_REQUEST :CONTENT ?!theme)(ONT::F ?!theme ?type :force ?f)
         lf might contain several rules
     :return: the list of Rule objects
+    TODO: doesn't work with triple quoted string for some reason
     """
     rules = re.split(r'\)[^\S\n\t]+\(', lf)
     rules = [rip_parens(x) for x in rules]
@@ -182,47 +159,129 @@ def rip_parens(input):
     return input.replace('(', ' ').replace(')', ' ')
 
 
-def score_set(rule_set, tparse):
+def score_wrt_map(map, rule_set, tparse):
     """
+    Score a pair (rule_set, tparse) with respect to a rule-to-tnode mapping
+    :param map: dict{ rule: tnode}
     :param rule_set:
     :param tparse:
-    :return: unnormalized score
-
+    :return: score
     """
-    match_score = 0
-    var_score = 0
-    ''' Match each rule to a tnode '''
-    rule_tnode = {}
-    ''' Globally match variables to terms. key: variable; value: a list of assignments'''
-    var_term = {}
-    ''' Find the best matching pairs of rule and tnode'''
-    for rule in rule_set:
-        rule = Rule(tnode=rule)
+    intersection = 0
+    mapped_rule_set, new_map = element_mapping(map, rule_set)
+    for rule in mapped_rule_set:
+        if new_map[rule] in map:
+            intersection += rule.score(map[new_map[rule]])
+    score = intersection / cardinality(rule_set)
+    return score
+
+
+def score(rule_set, tparse):
+    """
+    Find the highest-scoring mapping between rules and tnodes
+    by greedily finding the pairwise mapping (rule: tnode) that improve the score by largest number
+    and add the mapping
+    :param rule_set:
+    :param tparse:
+    :return: the score of tparse against rule_set
+    """
+    map = {}
+    current_score = 0
+    unmapped_tnodes = [tnode for tnode in tparse]
+    unmapped_rules = [rule for rule in rule_set]
+    while unmapped_rules:
+        new_map = ()
         max = 0
-        for tnode in tparse:
-            if rule.score(tnode) > max:
-                rule_tnode[rule] = tnode
-    ''' Dealing with variable assignments '''
-    for rule, tnode in rule_tnode.items():
-        rule.match_vars(tnode, var_term)
-        match_score += rule.score(tnode)
-    for var, terms in var_term.items():
-        max_term, freq = most_common(terms)
-        var_score += freq / len(terms)
-    print(match_score + var_score)
-    return match_score + var_score
+        candidates = []
+        for rule in unmapped_rules:
+            for tnode in unmapped_tnodes:
+                map[rule] = tnode
+                sc = score_wrt_map(map, rule_set, tparse)
+                map.pop(rule)
+                if sc > max:
+                    max = sc
+                    candidates = [(rule, tnode)]
+                if sc == max:
+                    candidates.append((rule, tnode))
+        max_cand = 0
+        for rule, tnode in candidates:
+            cand_score = 0
+            rule_node = rule_to_element(rule)
+            ''' potential outcoming edges '''
+            cand_score += len([k for k, v in rule.kvpairs.items() if k in tnode.kvpairs])
+            ''' potential incoming edges '''
+            for rule2 in rule_set:
+                cand_score += len([k for k, v in rule2.kvpairs.items() if v == rule_node and k in tnode.kvpairs])
+            if cand_score > max_cand:
+                max_cand = cand_score
+                new_map = (rule, tnode)
+        map[new_map[0]] = new_map[1]
+        max_cand = score_wrt_map(map, rule_set, tparse)
+        if current_score >= max_cand:
+            map.pop(new_map[0])
+            return current_score
+        unmapped_rules.remove(new_map[0])
+        unmapped_tnodes.remove(new_map[1])
+        current_score = max_cand
+    return current_score
 
 
-def accuracy(rule_set, tparse):
+def cardinality(rule_set):
     """
-    The actual function that gives the score of a trips parse against a rule set
+    Used for normalizing scores
     :param rule_set:
-    :param tparse:
-    :return: score (normalized against the score of rule set itself)
+    :return: the number of all positionals and kvpairs in rule_set
     """
-    return score_set(rule_set, tparse) / score_set(rule_set, rule_set)
+    card = 0
+    for rule in rule_set:
+        card += len([pos for pos in rule.positionals])
+        card += len([k for k in rule.kvpairs])
+    return card
 
 
-def most_common(list):
-    item = max(set(list), key=list.count)
-    return item, list.count(item)
+def element_to_rule(e, rule_set):
+    for rule in rule_set:
+        if rule.positionals[1] == e:
+            return rule
+    for rule in rule_set:
+        if e in rule.positionals or e in rule.kvpairs.values():
+            return None
+    raise ValueError('Element {} not in rule set'.format(e))
+
+
+def rule_to_element(rule):
+    return rule.positionals[1]
+
+
+def element_mapping(map, rule_set):
+    """
+    Translate the rule_set using the mapping
+    :param map:
+    :param rule_set:
+    :return:
+        mapped rule set
+        a map between original and new rule set: {rule: new rule}
+    """
+    element_map = {}
+    mapped_rule_set = []
+    new_map = {}
+    for rule in rule_set:
+        if rule in map:
+            element_map[rule_to_element(rule)] = rule_to_element(map[rule])
+    for rule in rule_set:
+        if rule not in map:
+            break
+        temp = Rule(positionals=[], kvpairs={})
+        for pos in rule.positionals:
+            if isinstance(pos, Term) or not element_to_rule(pos, rule_set):
+                temp.positionals.append(pos)
+            elif pos in element_map:
+                temp.positionals.append(element_map[pos])
+        for k, v in rule.kvpairs.items():
+            if isinstance(v, Term) or not element_to_rule(v, rule_set):
+                temp.kvpairs[k] = v
+            elif v in element_map:
+                temp.kvpairs[k] = element_map[v]
+        mapped_rule_set.append(temp)
+        new_map[temp] = rule
+    return mapped_rule_set, new_map
