@@ -205,7 +205,7 @@ def score(rule_set, tparse):
                     candidates = [(rule, tnode)]
                 if sc == max:
                     candidates.append((rule, tnode))
-        print('candidates:', candidates)
+        #print('candidates:', candidates)
         max_cand = 0
         for rule, tnode in candidates:
             cand_score = 0
@@ -218,7 +218,7 @@ def score(rule_set, tparse):
             if cand_score >= max_cand:
                 max_cand = cand_score
                 new_map = (rule, tnode)
-        print('new map: ', new_map)
+        #print('new map: ', new_map)
         map[new_map[0]] = new_map[1]
         max_cand = score_wrt_map(map, rule_set, tparse)
         if current_score >= max_cand:
