@@ -15,8 +15,5 @@ if __name__ == '__main__':
         (PRO V1182128 (:* PERSON W::ME) :PROFORM ME :LEX ME :COREF USER) \
         (A V1182170 (:* COMPUTER-TYPE W::LAPTOP) :LEX LAPTOP)'''
     parse1 = matcher.load_list_set(parse1)
-    map1 = {matcher.get_element('?x'):matcher.get_element('V1182287'), matcher.get_element('?!theme'):matcher.get_element('V1182124')}
-    map1 = {rule_set1[0]:parse1[0], rule_set1[1]:parse1[1]}
-    print(matcher.score_wrt_map(map1, rule_set1, parse1))
     print(matcher.score(rule_set1, parse1))
     print(matcher.score(rule_set1, rule_set1))
