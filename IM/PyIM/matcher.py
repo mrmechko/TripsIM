@@ -179,8 +179,10 @@ def score_wrt_map(map, rule_set, tparse):
 def score(rule_set, tparse):
     """
     Find the highest-scoring mapping between rules and tnodes
-    by greedily finding the pairwise mapping (rule: tnode) that improve the score by largest number
-    and add the mapping
+    by greedily finding the pair (rule: tnode) that improve the score by largest number
+    and add it to the mapping.
+
+    The function should always return 1 for input rule_set == tparse.
     :param rule_set:
     :param tparse:
     :return: the score of tparse against rule_set
@@ -203,6 +205,7 @@ def score(rule_set, tparse):
                     candidates = [(rule, tnode)]
                 if sc == max:
                     candidates.append((rule, tnode))
+        print('candidates:', candidates)
         max_cand = 0
         for rule, tnode in candidates:
             cand_score = 0
@@ -212,9 +215,10 @@ def score(rule_set, tparse):
             ''' potential incoming edges '''
             for rule2 in rule_set:
                 cand_score += len([k for k, v in rule2.kvpairs.items() if v == rule_node and k in tnode.kvpairs])
-            if cand_score > max_cand:
+            if cand_score >= max_cand:
                 max_cand = cand_score
                 new_map = (rule, tnode)
+        print('new map: ', new_map)
         map[new_map[0]] = new_map[1]
         max_cand = score_wrt_map(map, rule_set, tparse)
         if current_score >= max_cand:
@@ -240,8 +244,25 @@ def cardinality(rule_set):
 
 
 def element_to_rule(e, rule_set):
+    '''
+    Find the rule corresponding to element e
+    If e is seen in the rule set but has no corresponding rule, return None
+    If e is not seen in the rule set, raise error
+    :param e:
+    :param rule_set:
+    :return:
+    '''
     for rule in rule_set:
-        if rule.positionals[1] == e:
+        if isinstance(rule.positionals[1], Term):
+            name = rule.positionals[1].value
+        else:
+            name = rule.positionals[1].name
+
+        if isinstance(e, Term):
+            name2 = e.value
+        else:
+            name2 = e.name
+        if name == name2:
             return rule
     for rule in rule_set:
         if e in rule.positionals or e in rule.kvpairs.values():
