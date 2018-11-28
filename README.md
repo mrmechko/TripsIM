@@ -21,7 +21,7 @@ The basic idea of matching this kind of labeled (both vertices and edges), direc
 all the nodes are mapped or the score cannot be improved (best pair means adding it to the mapping improves the score
 by the largest margin).
 
-##To-do
+## To-do
 * The (type name) pattern like `(:* ONT::PLANT W::GRASS)` is now simply removed from the Trips node for consistency of format
 
 
