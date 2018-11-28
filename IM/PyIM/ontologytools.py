@@ -33,7 +33,7 @@ def isAncestor(a, b):
     try:
         return a in ont[b]["ancestors"]
     except:
-        sys.stderr.write('{} not an entry in ontology\n'.format(b))
+        #sys.stderr.write('{} not an entry in ontology\n'.format(b))
         return False
 
 

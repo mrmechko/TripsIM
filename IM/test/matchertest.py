@@ -5,7 +5,7 @@ from IM.PyIM import matcher
 
 if __name__ == '__main__':
     rule_set1 = '((SPEECH-ACT ?x SA_TELL :CONTENT ?!theme) ' \
-                '(F ?!theme ?what ?type :AGENT ?f)'
+                '(F ?!theme ?what ?type :AGENT ?f)' 
     rule_set1 = PyIM.matcher.load_list_set(rule_set1)
     card_rule = matcher.cardinality(rule_set1)
     parse1 = '''
@@ -17,3 +17,4 @@ if __name__ == '__main__':
     parse1 = matcher.load_list_set(parse1)
     print(matcher.score(rule_set1, parse1))
     print(matcher.score(rule_set1, rule_set1))
+    

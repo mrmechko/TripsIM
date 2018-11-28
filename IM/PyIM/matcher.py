@@ -115,14 +115,45 @@ def get_element(e):
     return Term(e)
 
 
+def json_to_lisp(js):
+    """
+    :param js: json object representing logical form
+    :return: a string in logical form in lisp format
+    """
+    lf = ""
+    for data in js:
+        lf += "("
+        for name, entry in data.items():
+            if type(entry) == dict:
+                indicator, word, typ, roles = entry["indicator"], entry["word"], entry["type"], entry["roles"] 
+                lf += "(ONT::" + indicator + " " + name
+                if word == None:
+                    lf += " " + typ
+                else:
+                    lf += " (:* ONT::" + typ + " W::" + word + ")"
+                for role, var in roles.items():
+                    if role != "LEX":
+                        if var[0] == "#": 
+                            lf += " :" + role + " " + var[1:]
+                        elif var[0] == "?":
+                            lf += " :" + role + " " + var
+                        else:
+                            lf += " :" + role + " ONT::" + var
+                lf += ")"
+        lf += ")"
+    return lf
+
+
 def load_list_set(lf):
     """
-    :param lf: string in logical form
+    :param lf: string in logical form or as a json object
         e.g. ((ONT::SPEECHACT ?x ONT::SA_REQUEST :CONTENT ?!theme)(ONT::F ?!theme ?type :force ?f)
         lf might contain several rules
     :return: the list of Rule objects
     TODO: doesn't work with triple quoted string for some reason
     """
+    if type(lf) != str:
+        lf = json_to_lisp(lf)
     rules = re.split(r'\)[^\S\n\t]+\(', lf)
     rules = [rip_parens(x) for x in rules]
     rules = [load_list(x) for x in rules]
@@ -149,7 +180,6 @@ def load_list(values, typ=TripsNode):
                 value = tokens.pop()
                 kvpair[get_element(t)] = get_element(value)
     return typ(positionals, kvpair)
-
 
 def rip_parens(input):
     """
