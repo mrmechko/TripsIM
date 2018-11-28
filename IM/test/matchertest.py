@@ -1,20 +1,30 @@
 import sys, os
+
 sys.path.insert(0, os.path.abspath('../..'))
 import IM.PyIM as PyIM
 from IM.PyIM import matcher
 
 if __name__ == '__main__':
-    rule_set1 = '((SPEECH-ACT ?x SA_TELL :CONTENT ?!theme) ' \
-                '(F ?!theme ?what ?type :AGENT ?f)' 
-    rule_set1 = PyIM.matcher.load_list_set(rule_set1)
-    card_rule = matcher.cardinality(rule_set1)
-    parse1 = '''
-        (SPEECH-ACT V1182287 SA_TELL :CONTENT V1182124 :LEX BUY) \
-        (F V1182124 :AGENT V1182288 :AFFECTED V1182170 :BENEFICIARY V1182128 :TENSE PRES :LEX BUY) \
-        (IMPRO V1182288 REFERENTIAL-SEM :PROFORM SUBJ) \
-        (PRO V1182128 (:* PERSON W::ME) :PROFORM ME :LEX ME :COREF USER) \
-        (A V1182170 (:* COMPUTER-TYPE W::LAPTOP) :LEX LAPTOP)'''
-    parse1 = matcher.load_list_set(parse1)
-    print(matcher.score(rule_set1, parse1))
-    print(matcher.score(rule_set1, rule_set1))
-    
+
+    ''' Test: 
+    match rule-set to itself 
+    should always get score = 1 '''
+
+    rule_set = '((ONT::SPEECHACT ?speechact SA_TELL :CONTENT ?content)' \
+               '(ONT::F ?content (:* ONT::HAVE-PROPERTY ?word-content) :NEUTRAL ?neutral :FORMAL ?formal :TENSE ONT::PRES)' \
+               '(ONT::THE ?neutral (:* ONT::PLANT ?word-neutral))' \
+               '(ONT::F ?formal (:* ONT::COLOR-VAL ?word-formal) :FIGURE ?neutral))'
+    print(matcher.score(rule_set, rule_set))
+
+
+    rule_set = '((ONT::SPEECHACT ?speechact SA_TELL :CONTENT ?content)' \
+               '(ONT::F ?content (:* ONT::HAVE-PROPERTY ?word-content) :NEUTRAL ?neutral :FORMAL ?formal :TENSE ONT::PRES)' \
+               '(ONT::THE ?neutral (:* ONT::PLANT ?word-neutral))' \
+               '(ONT::F ?formal (:* ONT::COLOR-VAL ?word-formal) :FIGURE ?neutral))'
+    parse = '((ONT::SPEECHACT V137370 SA_TELL :CONTENT V137265)' \
+            '(ONT::F V137265 (:* ONT::HAVE-PROPERTY W::BE) :NEUTRAL V137257 :FORMAL V137287 :TENSE ONT::PRES)' \
+            '(ONT::THE V137257 (:* ONT::PLANT W::GRASS))' \
+            '(ONT::F V137287 (:* ONT::GREEN W::GREEN) :FIGURE V137257 :SCALE ONT::GREEN*1--07--00))'
+    rule_set = matcher.load_list_set(rule_set)
+    parse = matcher.load_list_set(parse)
+    print(matcher.score(rule_set, parse))

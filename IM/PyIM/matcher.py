@@ -80,7 +80,7 @@ class Rule:
     def __repr__(self):
         return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
 
-    def _score_positionals(self, tnode: TripsNode) -> int:  # TODO: missing positionals
+    def _score_positionals(self, tnode: TripsNode) -> int:
         """
         :param tnode:
         :return: number of positionals in Rule that have matches in tnode.positionals
@@ -154,8 +154,8 @@ def load_list_set(lf):
     """
     if type(lf) != str:
         lf = json_to_lisp(lf)
-    rules = re.split(r'\)[^\S\n\t]+\(', lf)
-    rules = [rip_parens(x) for x in rules]
+    rules = re.split(r'\)[^\S\n\t]*\(', lf)
+    rules = [format_rule(x) for x in rules]
     rules = [load_list(x) for x in rules]
     return rules
 
@@ -181,12 +181,16 @@ def load_list(values, typ=TripsNode):
                 kvpair[get_element(t)] = get_element(value)
     return typ(positionals, kvpair)
 
-def rip_parens(input):
+def format_rule(input):
     """
     :param input: string in logical form
     :return: string without parens
+    TODO: Currently simply gets rid of patterns like (:* ONT::PLANT W::GRASS)
     """
-    return input.replace('(', ' ').replace(')', ' ')
+    ret = re.sub(r'\([\s\t]*:[\s\t]*\*.+?\)', ' ', input)
+    ret = ret.replace('(', ' ').replace(')', ' ')
+    ret = ret.replace('ONT::', '')
+    return ret
 
 
 def score_wrt_map(map, rule_set, tparse):
@@ -225,6 +229,8 @@ def score(rule_set, tparse):
         new_map = ()
         max = 0
         candidates = []
+        if not unmapped_tnodes:
+            raise ValueError('Not enough Tnodes in Trips parse')
         for rule in unmapped_rules:
             for tnode in unmapped_tnodes:
                 map[rule] = tnode
@@ -235,7 +241,7 @@ def score(rule_set, tparse):
                     candidates = [(rule, tnode)]
                 if sc == max:
                     candidates.append((rule, tnode))
-        #print('candidates:', candidates)
+        # print('candidates:', candidates)
         max_cand = 0
         for rule, tnode in candidates:
             cand_score = 0
@@ -248,7 +254,7 @@ def score(rule_set, tparse):
             if cand_score >= max_cand:
                 max_cand = cand_score
                 new_map = (rule, tnode)
-        #print('new map: ', new_map)
+        # print('new map: ', new_map)
         map[new_map[0]] = new_map[1]
         max_cand = score_wrt_map(map, rule_set, tparse)
         if current_score >= max_cand:
@@ -257,6 +263,8 @@ def score(rule_set, tparse):
         unmapped_rules.remove(new_map[0])
         unmapped_tnodes.remove(new_map[1])
         current_score = max_cand
+        # print('unmapped rules: ', unmapped_rules)
+        # print('unmapped tnodes: ', unmapped_tnodes)
     return current_score
 
 
