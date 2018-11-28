@@ -4,6 +4,7 @@
 - [Matcher](#matcher)
     * [Data structure](#data-structure)
     * [Matching routine](#matching-routine)
+- [To-do](#to-do)
 - [Usage](#usage)
     * [Input](#input)
 - [References](#references)
@@ -19,6 +20,10 @@ The basic idea of matching this kind of labeled (both vertices and edges), direc
 2. Use a greedy approach to find the best pair to add to the existing mapping, one at a time until 
 all the nodes are mapped or the score cannot be improved (best pair means adding it to the mapping improves the score
 by the largest margin).
+
+##To-do
+* The (type name) pattern like `(:* ONT::PLANT W::GRASS)` is now simply removed from the Trips node for consistency of format
+
 
 ## Usage 
 If we start with string-formatted logical forms, e.g.
