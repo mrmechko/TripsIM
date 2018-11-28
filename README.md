@@ -26,7 +26,9 @@ If we start with string-formatted logical forms, e.g.
 ((SPEECH-ACT ?x SA_TELL :CONTENT ?!theme) 
  (F ?!theme ?what ?type :AGENT ?f)
  ```
- we need to load it into a set of rules using `load_list_set()`.
+ we need to load it into a set of rules using `load_list_set()`. 
+
+ We are also able to pass a json object into that same function.
  
  Do the same to a TRIPS parse, e.g.
   ```
