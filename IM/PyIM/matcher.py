@@ -17,12 +17,14 @@ are consistent.
 
 
 class TripsNode:
-    def __init__(self, positionals, kvpairs):
+    def __init__(self, positionals, kvpairs, type_word=[]):
         self.positionals = positionals
         self.kvpairs = kvpairs
+        self.type_word = type_word
 
     def __repr__(self):
-        return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
+        return "TripsNode<\n\ttype:" + str(self.type_word) + '\n\tpositionals:' + repr(
+            self.positionals) + "\n\tkvpairs:" + repr(self.kvpairs) + ">\n"
 
 
 class Element:
@@ -69,16 +71,19 @@ class Term(Element):
 
 class Rule:
 
-    def __init__(self, positionals=None, kvpairs=None, tnode=None):
+    def __init__(self, positionals=None, kvpairs=None, type_word=[], tnode=None):
         if tnode:
             self.positionals = tnode.positionals
             self.kvpairs = tnode.kvpairs
+            self.type_word = tnode.type_word
         else:
             self.positionals = positionals
             self.kvpairs = kvpairs
+            self.type_word = type_word
 
     def __repr__(self):
-        return "TripsNode<" + repr(self.positionals) + " " + repr(self.kvpairs) + ">"
+        return "Rule<\n\ttype:" + str(self.type_word) + '\n\tpositionals:' + repr(
+            self.positionals) + "\n\tkvpairs:" + repr(self.kvpairs) + ">\n"
 
     def _score_positionals(self, tnode: TripsNode) -> int:
         """
@@ -125,7 +130,7 @@ def json_to_lisp(js):
         lf += "("
         for name, entry in data.items():
             if type(entry) == dict:
-                indicator, word, typ, roles = entry["indicator"], entry["word"], entry["type"], entry["roles"] 
+                indicator, word, typ, roles = entry["indicator"], entry["word"], entry["type"], entry["roles"]
                 lf += "(ONT::" + indicator + " " + name
                 if word == None:
                     lf += " " + typ
@@ -133,7 +138,7 @@ def json_to_lisp(js):
                     lf += " (:* ONT::" + typ + " W::" + word + ")"
                 for role, var in roles.items():
                     if role != "LEX":
-                        if var[0] == "#": 
+                        if var[0] == "#":
                             lf += " :" + role + " " + var[1:]
                         elif var[0] == "?":
                             lf += " :" + role + " " + var
@@ -162,24 +167,33 @@ def load_list_set(lf):
 
 def load_list(values, typ=TripsNode):
     positionals = []
+    type_word = []
     kvpair = {}
     tokens = values.strip().split()
     tokens.reverse()
     state = 0
     while tokens:
         t = tokens.pop()
-        if not state:
-            if t[0] == ":":
+        if state == 0:
+            if t[0] == "%":
+                t = tokens.pop()
                 state = 1
             else:
                 positionals.append(get_element(t))
+
         if state == 1:
+            if t[0] == ":":
+                state = 2
+            else:
+                type_word.append(get_element(t))
+        if state == 2:
             if t[0] == ":":
                 if not tokens:
                     raise ValueError("Not enough values")
                 value = tokens.pop()
                 kvpair[get_element(t)] = get_element(value)
-    return typ(positionals, kvpair)
+    return typ(positionals, kvpair, type_word)
+
 
 def format_rule(input):
     """
@@ -187,7 +201,9 @@ def format_rule(input):
     :return: string without parens
     TODO: Currently simply gets rid of patterns like (:* ONT::PLANT W::GRASS)
     """
-    ret = re.sub(r'\([\s\t]*:[\s\t]*\*.+?\)', ' ', input)
+    #ret = re.sub(r'\([\s\t]*:[\s\t]*\*.+?\)', ' ', input)
+    ''' replace (:* with % '''
+    ret = re.sub(r'\([\s\t]*:[\s\t]*\*', '% ', input)
     ret = ret.replace('(', ' ').replace(')', ' ')
     ret = ret.replace('ONT::', '')
     return ret

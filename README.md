@@ -12,6 +12,11 @@
 
 ### Data structure
 
+Tripsnode and Rule have the same structure:
+* positionals: a list of elements
+* type_word: the pair (type, word) as in `(:* ONT::PLANT W::GRASS)`
+* kvpairs: the dictionary of {role: element}
+
 ### Matching routine
 
 The matching function referenced [Champin, Pierre-Antoine, and Christine Solnon](https://perso.liris.cnrs.fr/pierre-antoine.champin/publis/iccbr2003a.pdf).
