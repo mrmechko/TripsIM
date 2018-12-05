@@ -168,39 +168,10 @@ def load_list_set(lf):
     return rules
 
 
-def load_list_old(values, typ=TripsNode):
-    positionals = []
-    type_word = []
-    kvpair = {}
-    tokens = values.strip().split()
-    tokens.reverse()
-    state = 0
-    while tokens:
-        t = tokens.pop()
-        if state == 0:
-            if t[0] == "%" or t[0] == ":":
-                t = tokens.pop()
-                state = 1
-            else:
-                positionals.append(get_element(t))
-
-        if state == 1:
-            if t[0] == "%":
-                type_word.append(get_element(t))
-            elif t[0] == ":":
-                if not tokens:
-                    raise ValueError("Not enough values")
-                value = tokens.pop()
-                kvpair[get_element(t)] = get_element(value)
-    return typ(positionals, kvpair, type_word)
-
-
 def load_list(values, typ=TripsNode):
-    positionals = []
     type_word = []
     kvpair = {}
     values = values.strip()
-    typeword_re = r'(%.*%).*?:'
     part1 = re.split(r':', values)[0]
     part2 = values.replace(part1, '')
     part1_list = part1.split('%')
