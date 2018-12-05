@@ -10,10 +10,39 @@ if __name__ == '__main__':
     match rule-set to itself 
     should always get score = 1 '''
 
+    def parse_rule_set(fpath):
+        rs = []
+        description = ""
+        rule = ""
+        for line in open(fpath, 'r').readlines():
+            if line != 0 and description == "" and line[0] == '#':
+                description = line[2:]
+            elif line == "" or line[0] == '#':
+                    if rule != "":
+                        rs.append((matcher.load_list_set(rule.replace("\n", "")), description.replace("\n", "")))
+                        rule = ""
+            else:
+                rule += line
+        return rs
+
+    def grade_rules(rs, parse):
+        max = 0
+        desc = ""
+        for t in rs:
+            r = t[0]
+            d = t[1]
+            s = matcher.score(r, parse)
+            if s > max:
+                desc = d
+                max = s
+            print("Match with rule: " + d + " with a score of: " + str(s))
+        
+
     rule_set = '((ONT::SPEECHACT ?speechact SA_TELL :CONTENT ?content)' \
                '(ONT::F ?content (:* ONT::HAVE-PROPERTY ?word-content) :NEUTRAL ?neutral :FORMAL ?formal :TENSE ONT::PRES)' \
                '(ONT::THE ?neutral (:* ONT::PLANT ?word-neutral))' \
                '(ONT::F ?formal (:* ONT::COLOR-VAL ?word-formal) :FIGURE ?neutral))'
+    rule_set = matcher.load_list_set(rule_set)
     print(matcher.score(rule_set, rule_set))
 
 
@@ -28,3 +57,19 @@ if __name__ == '__main__':
     rule_set = matcher.load_list_set(rule_set)
     parse = matcher.load_list_set(parse)
     print(matcher.score(rule_set, parse))
+
+    # Should match with first template in rule set
+    parse2 = '((ONT::SPEECHACT ONT::V40122 SA_TELL :CONTENT ONT::V39968)' \
+             '(ONT::F ONT::V39968 (:* ONT::WANT W::WANT) :EXPERIENCER ONT::V39953 :FORMAL ONT::V40003 :TENSE ONT::PRES)' \
+             '(ONT::PRO ONT::V39953 (:* ONT::PERSON W::I) :PROFORM ONT::I)' \
+             '(ONT::F ONT::V40003 (:* ONT::PURCHASE W::BUY) :AGENT ONT::V39953 :AFFECTED ONT::V40050 :VFORM ONT::BASE)' \
+             '(ONT::A ONT::V40050 (:* ONT::COMPUTER W::COMPUTER)))'
+
+    # Should match with fifth template in rule set
+    parse3 =    '((ONT::SPEECHACT ONT::V40598 SA_YN-QUESTION :CONTENT ONT::V40347)' \
+                '(ONT::F ONT::V40347 (:* ONT::KNOW W::KNOW) :EXPERIENCER ONT::V40332 :NEUTRAL ONT::V40369 :TENSE ONT::PRES :MODALITY (:* DO DO))' \
+                '(ONT::PRO ONT::V40332 (:* ONT::PERSON W::YOU) :PROFORM ONT::YOU)' \
+                '(ONT::THE ONT::V40369 (:* ONT::MALE-PERSON W::MAN) :ASSOC-WITH ONT::V40366)' \
+                '(ONT::KIND ONT::V40366 (:* ONT::BAGELS-BISCUITS W::MUFFIN)))'
+    #grade_rules(parse_rule_set("ruleset.txt"), matcher.load_list_set(parse2))
+    grade_rules(parse_rule_set("ruleset.txt"), matcher.load_list_set(parse3))
