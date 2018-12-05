@@ -99,6 +99,9 @@ class Rule:
                 j = tnode.positionals.index(item, last)
                 last = j + 1
                 sum += 1
+            elif tnode.type_word:
+                if item in tnode.type_word:
+                    sum += 1
         return sum
 
     def _score_kvpairs(self, tnode: TripsNode) -> int:
@@ -165,7 +168,7 @@ def load_list_set(lf):
     return rules
 
 
-def load_list(values, typ=TripsNode):
+def load_list_old(values, typ=TripsNode):
     positionals = []
     type_word = []
     kvpair = {}
@@ -175,24 +178,48 @@ def load_list(values, typ=TripsNode):
     while tokens:
         t = tokens.pop()
         if state == 0:
-            if t[0] == "%":
+            if t[0] == "%" or t[0] == ":":
                 t = tokens.pop()
                 state = 1
             else:
                 positionals.append(get_element(t))
 
         if state == 1:
-            if t[0] == ":":
-                state = 2
-            else:
+            if t[0] == "%":
                 type_word.append(get_element(t))
-        if state == 2:
-            if t[0] == ":":
+            elif t[0] == ":":
                 if not tokens:
                     raise ValueError("Not enough values")
                 value = tokens.pop()
                 kvpair[get_element(t)] = get_element(value)
     return typ(positionals, kvpair, type_word)
+
+
+def load_list(values, typ=TripsNode):
+    positionals = []
+    type_word = []
+    kvpair = {}
+    values = values.strip()
+    typeword_re = r'(%.*%).*?:'
+    part1 = re.split(r':', values)[0]
+    part2 = values.replace(part1, '')
+    part1_list = part1.split('%')
+    positionals = part1_list[0].split()
+    if len(part1_list) > 1:
+        type_word = part1.split('%')[1].split()
+        type_word = [get_element(e) for e in type_word]
+    positionals = [get_element(e) for e in positionals]
+    part2 = part2.strip().split(':')
+    for e in part2:
+        if e.split():
+            lst = e.split()
+            if len(lst) == 2:
+                kvpair[get_element(lst[0])] = get_element(lst[1])
+            else:
+                lst = e.replace('%', '').split()
+                kvpair[get_element(lst[0])] = get_element(lst[1] + ' ' + lst[2])
+    return typ(positionals, kvpair, type_word)
+
 
 
 def format_rule(input):
@@ -201,11 +228,11 @@ def format_rule(input):
     :return: string without parens
     TODO: Currently simply gets rid of patterns like (:* ONT::PLANT W::GRASS)
     """
-    #ret = re.sub(r'\([\s\t]*:[\s\t]*\*.+?\)', ' ', input)
+    ret = re.sub(r'\([\s\t]*:[\s\t]*\*(.+?)\)', r'% \1 %', input)
     ''' replace (:* with % '''
-    ret = re.sub(r'\([\s\t]*:[\s\t]*\*', '% ', input)
+    #ret = re.sub(r'\([\s\t]*:[\s\t]*\*', '% ', input)
     ret = ret.replace('(', ' ').replace(')', ' ')
-    ret = ret.replace('ONT::', '')
+    ret = ret.replace('ONT::', '').replace('W::', '')
     return ret
 
 
@@ -222,6 +249,9 @@ def score_wrt_map(map, rule_set, tparse):
     for rule in mapped_rule_set:
         if new_map[rule] in map:
             intersection += rule.score(map[new_map[rule]])
+            # print(rule)
+            # print(map[new_map[rule]])
+            # print('intersection +=: ', rule.score(map[new_map[rule]]))
     score = intersection / cardinality(rule_set)
     return score
 
