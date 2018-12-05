@@ -37,6 +37,7 @@ if __name__ == '__main__':
             if s > max:
                 desc = d
                 max = s
+            print("Score for rule: " + d + " is: " + str(s)) 
         print("Match with rule: " + desc + " with a score of: " + str(max))
         
 
