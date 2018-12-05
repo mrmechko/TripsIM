@@ -51,6 +51,25 @@ If we start with string-formatted logical forms, e.g.
    ```
 Then passing the two loaded set to `score()` will give the score of the parse against the rule set.
 
+We are also able to load in a list of rules from a file and test a given parse against that list of rules to find the best match.
+
+The text file storing the list of rules must be formatted as follows:
+```
+---
+# Description of pattern 1
+/ Comment 1
+/ Comment 2
+/ ...
+Pattern in logical form using Lisp-like syntax with variables in the format "?x" where x can be whatever you want.
+---
+# Description of pattern 2
+...
+```
+
+We can parse a file in this format using the `parse_rule_set()` function which returns a list of tuples that hold (parsed rule, description of rule).
+
+Then we can pass the output from the previous function and a parsed rule into the `grade_rules()` function which will return the description of the highest matching rule as well as the score of that match (1.0 for an exact match).
+
 ### Input
 
 ## References
