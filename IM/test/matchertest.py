@@ -15,12 +15,14 @@ if __name__ == '__main__':
         description = ""
         rule = ""
         for line in open(fpath, 'r').readlines():
-            if line != 0 and description == "" and line[0] == '#':
+            if line[0] == '#':
                 description = line[2:]
-            elif line == "" or line[0] == '#':
-                    if rule != "":
-                        rs.append((matcher.load_list_set(rule.replace("\n", "")), description.replace("\n", "")))
-                        rule = ""
+            elif line[0] == '/':
+                assert True
+            elif line[0] == '-':
+                if rule != "":
+                    rs.append((matcher.load_list_set(rule.replace("\n", "")), description.replace("\n", "")))
+                    rule, description = "", ""
             else:
                 rule += line
         return rs
@@ -35,7 +37,7 @@ if __name__ == '__main__':
             if s > max:
                 desc = d
                 max = s
-            print("Match with rule: " + d + " with a score of: " + str(s))
+        print("Match with rule: " + desc + " with a score of: " + str(max))
         
 
     rule_set = '((ONT::SPEECHACT ?speechact SA_TELL :CONTENT ?content)' \
@@ -71,5 +73,5 @@ if __name__ == '__main__':
                 '(ONT::PRO ONT::V40332 (:* ONT::PERSON W::YOU) :PROFORM ONT::YOU)' \
                 '(ONT::THE ONT::V40369 (:* ONT::MALE-PERSON W::MAN) :ASSOC-WITH ONT::V40366)' \
                 '(ONT::KIND ONT::V40366 (:* ONT::BAGELS-BISCUITS W::MUFFIN)))'
-    #grade_rules(parse_rule_set("ruleset.txt"), matcher.load_list_set(parse2))
+    grade_rules(parse_rule_set("ruleset.txt"), matcher.load_list_set(parse2))
     grade_rules(parse_rule_set("ruleset.txt"), matcher.load_list_set(parse3))
