@@ -31,7 +31,7 @@
 / Do you know the muffin man?
 (
 (ONT::SPEECHACT ?v SA_YN-QUESTION :CONTENT ?!v1)
-(ONT::F ?!v1 ONT::KNOW :EXPERIENCER !e1 :NEUTRAL ?!n) 
+(ONT::F ?!v1 ONT::KNOW :EXPERIENCER ?!e1 :NEUTRAL ?!n) 
 )
 ---
 # (can/could/would/will) you help me do X
@@ -54,8 +54,8 @@
 / Are those red?
 (
 (ONT::SPEECHACT ?x SA_YN-QUESTION :CONTENT ?!theme)
-(ONT::F ?!theme (:* ONT::HAVE-PROPERTY W::BE) :NEUTRAL !n1 :FORMAL !f1)
-(ONT::PRO-SET !n1 (:* ONT::REFERENTIAL-SEM W::THOSE) :PROFORM ONT::THOSE)
+(ONT::F ?!theme (:* ONT::HAVE-PROPERTY W::BE) :NEUTRAL ?!n1 :FORMAL ?!f1)
+(ONT::PRO-SET ?!n1 (:* ONT::REFERENTIAL-SEM W::THOSE) :PROFORM ONT::THOSE)
 )
 ---
 # !x eats !y
