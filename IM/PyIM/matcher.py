@@ -44,7 +44,7 @@ class Variable(Element):
 
     def __eq__(self, other):
         if type(other) is Variable:
-            return self.name == other.name
+            return self.name.lower() == other.name.lower()
         if type(other) is Term:
             return True
         return False
@@ -63,7 +63,7 @@ class Term(Element):
 
     def __eq__(self, other):
         if type(other) is Term:
-            return self.value == other.value or ont.isAncestor(other, self) or ont.isAncestor(self, other)
+            return self.value.lower() == other.value.lower() or ont.isAncestor(other, self) or ont.isAncestor(self, other)
         elif type(other) is Variable:
             return True
         return False
