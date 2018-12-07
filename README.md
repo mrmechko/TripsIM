@@ -17,6 +17,10 @@ Tripsnode and Rule have the same structure:
 * type_word: the pair (type, word) as in `(:* ONT::PLANT W::GRASS)`
 * kvpairs: the dictionary of {role: element}
 
+If the `(type word)` pattern appears in the kvpairs, e.g. `:role (:* type word)`, 
+currently it is recorded as `{role: "type word"}` in the TripsNode. 
+The design concerning type-word pairs will possibly need modification.
+
 ### Matching routine
 
 The matching function referenced [Champin, Pierre-Antoine, and Christine Solnon](https://perso.liris.cnrs.fr/pierre-antoine.champin/publis/iccbr2003a.pdf).
@@ -26,8 +30,14 @@ The basic idea of matching this kind of labeled (both vertices and edges), direc
 all the nodes are mapped or the score cannot be improved (best pair means adding it to the mapping improves the score
 by the largest margin).
 
+### Heuristics
+The goodness of fit between a Trips parse `P` and a rule set `R`' with respect to a mapping is evaluated as:
+` sum (intersection(p, r))/ sum (cardinality(r)) for each mapped pair (p, r)`,
+where the intersection is the number of matches among positionals and kvpairs for each, 
+and the cardinality is `kvpairs.length + positionals.length`.
+
+
 ## To-do
-* The (type name) pattern like `(:* ONT::PLANT W::GRASS)` is now simply removed from the Trips node for consistency of format
 
 
 ## Usage 
