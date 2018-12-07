@@ -366,3 +366,40 @@ def element_mapping(map, rule_set):
         mapped_rule_set.append(temp)
         new_map[temp] = rule
     return mapped_rule_set, new_map
+
+def parse_rule_set(fpath):
+    """
+    Load in and parse a set of rules from a file
+    """
+    rs = []
+    description = ""
+    rule = ""
+    for line in open(fpath, 'r').readlines():
+        if line[0] == '#':
+            description = line[2:]
+        elif line[0] == '/':
+            assert True
+        elif line[0] == '-':
+            if rule != "":
+                rs.append((load_list_set(rule.replace("\n", "")), description.replace("\n", "")))
+                rule, description = "", ""
+        else:
+            rule += line
+    return rs
+
+def grade_rules(rs, parse):
+    """
+    Given a parsed rule set and a given parse, find the rule that best matches the parse
+    Currently outputs the score of the parse against every rule, as well as which rule it best matches
+    """
+    max = 0
+    desc = ""
+    for t in rs:
+        r = t[0]
+        d = t[1]
+        s = score(r, parse)
+        if s > max:
+            desc = d
+            max = s
+        print("Score for rule: " + d + " is: " + str(s)) 
+    print("Match with rule: " + desc + " with a score of: " + str(max))

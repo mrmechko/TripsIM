@@ -9,36 +9,6 @@ if __name__ == '__main__':
     ''' Test: 
     match rule-set to itself 
     should always get score = 1 '''
-
-    def parse_rule_set(fpath):
-        rs = []
-        description = ""
-        rule = ""
-        for line in open(fpath, 'r').readlines():
-            if line[0] == '#':
-                description = line[2:]
-            elif line[0] == '/':
-                assert True
-            elif line[0] == '-':
-                if rule != "":
-                    rs.append((matcher.load_list_set(rule.replace("\n", "")), description.replace("\n", "")))
-                    rule, description = "", ""
-            else:
-                rule += line
-        return rs
-
-    def grade_rules(rs, parse):
-        max = 0
-        desc = ""
-        for t in rs:
-            r = t[0]
-            d = t[1]
-            s = matcher.score(r, parse)
-            if s > max:
-                desc = d
-                max = s
-            print("Score for rule: " + d + " is: " + str(s)) 
-        print("Match with rule: " + desc + " with a score of: " + str(max))
         
 
     rule_set = '((ONT::SPEECHACT ?speechact SA_TELL :CONTENT ?content)' \
@@ -74,5 +44,5 @@ if __name__ == '__main__':
                 '(ONT::PRO ONT::V40332 (:* ONT::PERSON W::YOU) :PROFORM ONT::YOU)' \
                 '(ONT::THE ONT::V40369 (:* ONT::MALE-PERSON W::MAN) :ASSOC-WITH ONT::V40366)' \
                 '(ONT::KIND ONT::V40366 (:* ONT::BAGELS-BISCUITS W::MUFFIN)))'
-    grade_rules(parse_rule_set("ruleset.txt"), matcher.load_list_set(parse2))
-    grade_rules(parse_rule_set("ruleset.txt"), matcher.load_list_set(parse3))
+    matcher.grade_rules(matcher.parse_rule_set("../data/ruleset.txt"), matcher.load_list_set(parse2))
+    matcher.grade_rules(matcher.parse_rule_set("../data/ruleset.txt"), matcher.load_list_set(parse3))
