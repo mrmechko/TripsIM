@@ -1,0 +1,89 @@
+---
+# !v1 wants to !theme
+/ I want to buy a computer.
+(
+(ONT::SPEECHACT ?x SA_TELL :CONTENT ?!c)  
+(ONT::F ?!c (:* ONT::WANT ?www) :FORMAL ?!theme :EXPERIENCER ?!v1 )
+)
+---
+# !v1 needs to !theme
+/ I need to buy a computer.
+(
+(ONT::SPEECHACT ?x SA_TELL :CONTENT ?!c)  
+(ONT::F ?!c (:* ONT::NECESSITY ?w) :FORMAL ?!theme :neutral ?!v1)
+)
+---
+# Shall x !v1?
+/ Shall I buy a computer?
+(
+(ONT::SPEECHACT ?v SA_YN-QUESTION :CONTENT ?!v1)
+(ONT::F ?!v1 ONT::SITUATION-ROOT ::TENSE ONT::FUT :MODALITY (:* FUTURE SHALL))
+)
+---
+# Does !n exist?
+/ Are there any trucks available?
+(
+(ONT::SPEECHACT ?v SA_YN-QUESTION :CONTENT ?!v1)
+(ONT::F ?!v1 ONT::EXISTS :NEUTRAL ?!n)
+)
+---
+# Does !e1 know !n?
+/ Do you know the muffin man?
+(
+(ONT::SPEECHACT ?v SA_YN-QUESTION :CONTENT ?!v1)
+(ONT::F ?!v1 ONT::KNOW :EXPERIENCER ?!e1 :NEUTRAL ?!n) 
+)
+---
+# (can/could/would/will) you help me do X
+/ Can you help me study?
+(
+(ONT::SPEECHACT ?V7187 SA_YN-QUESTION :CONTENT ?!v1)
+(ONT::F ?!v1 (:* ONT::HELP ?!help) :FORMAL ?!theme :AFFECTED ?!v2 :AGENT ?!v3)
+(ONT::PRO ?!v2 (:* ONT::PERSON ONT::ME))
+(ONT::PRO ?!v3 (:* ONT::PERSON ONT::YOU))
+)
+---
+# !object is !property
+/ The blocks are red.
+(
+(ONT::SPEECHACT ?!V9120 SA_TELL :CONTENT ?!v1)
+(ONT::F ?!v1 (:* ONT::HAVE-PROPERTY W::BE) :NEUTRAL ?!object :FORMAL ?!property)
+)
+---
+# Are those !f1?
+/ Are those red?
+(
+(ONT::SPEECHACT ?x SA_YN-QUESTION :CONTENT ?!theme)
+(ONT::F ?!theme (:* ONT::HAVE-PROPERTY W::BE) :NEUTRAL ?!n1 :FORMAL ?!f1)
+(ONT::PRO-SET ?!n1 (:* ONT::REFERENTIAL-SEM W::THOSE) :PROFORM ONT::THOSE)
+)
+---
+# !x eats !y
+/ I eat grapes.
+(
+(ONT::SPEECHACT ?!v1 SA_TELL :CONTENT ?!theme)
+(ONT::F ?!theme (:* ONT::EAT W::EAT) :AGENT ?!x :AFFECTED ?!y)
+)
+---
+# !x does !y at !time
+/ I run at night.
+(
+(ONT::SPEECHACT ?!v1 SA_TELL :CONTENT ?!theme)
+(ONT::F ?!theme ?!y :AGENT ?!x :TIME ?!time)
+(ONT::F ?!time (:* ONT::TIME-CLOCK-REL W::AT))
+)
+---
+# Greeting
+/ Hello
+(
+(ONT::SPEECHACT ?!v1 SA_GREET :CONTENT ?!theme)
+)
+---
+# Is that !x
+/ Is that a car?
+(
+(ONT::SPEECHACT ?!v1 SA_YN-QUESTION :CONTENT ?!theme)
+(ONT::F ?!theme (:* ONT::BE W::BE) :NUETRAL ?!that :NEUTRAL1 ?!x)
+(ONT::PRO ?!that (:* ONT::REFERENTIAL-SEM W::THAT) :PROFORM ONT::THAT)
+)
+---
