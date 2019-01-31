@@ -1,9 +1,0 @@
-README.md
-setup.py
-TripsIM/__init__.py
-TripsIM/matcher.py
-TripsIM/ontologytools.py
-TripsIM.egg-info/PKG-INFO
-TripsIM.egg-info/SOURCES.txt
-TripsIM.egg-info/dependency_links.txt
-TripsIM.egg-info/top_level.txt
