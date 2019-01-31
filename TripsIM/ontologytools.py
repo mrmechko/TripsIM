@@ -7,7 +7,7 @@ import os.path as osp
 def loadont(pathName):
     # Put ontology in a dictionary so we can index by name of word
 
-    pathName = osp.join(osp.abspath('../data'), pathName)
+    pathName = osp.join(osp.abspath('data'), pathName)
     ont = {}
     for i in json.load(open(pathName)):
         ont[i["name"]] = i

@@ -1,5 +1,5 @@
 import re
-import IM.PyIM.ontologytools as ont
+from . import ontologytools as ont
 
 """
 A trips node is defined as a list of strings with some number of positionals
