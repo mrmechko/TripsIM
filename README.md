@@ -1,5 +1,7 @@
 # IMDocumentation
 
+[![Build Status](https://travis-ci.com/mrmechko/TripsIM.svg?branch=package)](https://travis-ci.com/mrmechko/TripsIM)
+
 <!-- toc -->
 - [Matcher](#matcher)
     * [Data structure](#data-structure)
