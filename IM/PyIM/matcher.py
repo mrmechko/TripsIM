@@ -25,6 +25,7 @@ class TripsNode:
     def __repr__(self):
         return "TripsNode<\n\ttype:" + str(self.type_word) + '\n\tpositionals:' + repr(
             self.positionals) + "\n\tkvpairs:" + repr(self.kvpairs) + ">\n"
+        # return'<' + str(self.positionals) + '>\n'
 
 
 class Element:
@@ -63,7 +64,8 @@ class Term(Element):
 
     def __eq__(self, other):
         if type(other) is Term:
-            return self.value.lower() == other.value.lower() or ont.isAncestor(other, self) or ont.isAncestor(self, other)
+            return self.value.lower() == other.value.lower() or ont.isAncestor(other, self) or ont.isAncestor(self,
+                                                                                                              other)
         elif type(other) is Variable:
             return True
         return False
@@ -84,24 +86,19 @@ class Rule:
     def __repr__(self):
         return "Rule<\n\ttype:" + str(self.type_word) + '\n\tpositionals:' + repr(
             self.positionals) + "\n\tkvpairs:" + repr(self.kvpairs) + ">\n"
+        # return '<' + str(self.positionals) + '>\n'
 
     def _score_positionals(self, tnode: TripsNode) -> int:
         """
         :param tnode:
         :return: number of positionals in Rule that have matches in tnode.positionals
         """
-        j = 0
-        last = 0
         sum = 0
-        for i in range(len(self.positionals)):
-            item = self.positionals[i]
-            if item in tnode.positionals[last:]:
-                j = tnode.positionals.index(item, last)
-                last = j + 1
+        pos = tnode.positionals.copy()
+        for p in self.positionals:
+            if p in pos:
+                pos.remove(p)
                 sum += 1
-            elif tnode.type_word:
-                if item in tnode.type_word:
-                    sum += 1
         return sum
 
     def _score_kvpairs(self, tnode: TripsNode) -> int:
@@ -114,6 +111,7 @@ class Rule:
     def score(self, tripsnode: TripsNode) -> float:
         p = self._score_positionals(tripsnode)
         kv = self._score_kvpairs(tripsnode)
+
         return p + kv
 
 
@@ -192,7 +190,6 @@ def load_list(values, typ=TripsNode):
     return typ(positionals, kvpair, type_word)
 
 
-
 def format_rule(input):
     """
     :param input: string in logical form
@@ -201,7 +198,7 @@ def format_rule(input):
     """
     ret = re.sub(r'\([\s\t]*:[\s\t]*\*(.+?)\)', r'% \1 %', input)
     ''' replace (:* with % '''
-    #ret = re.sub(r'\([\s\t]*:[\s\t]*\*', '% ', input)
+    # ret = re.sub(r'\([\s\t]*:[\s\t]*\*', '% ', input)
     ret = ret.replace('(', ' ').replace(')', ' ')
     ret = ret.replace('ONT::', '').replace('W::', '')
     return ret
@@ -220,9 +217,7 @@ def score_wrt_map(map, rule_set, tparse):
     for rule in mapped_rule_set:
         if new_map[rule] in map:
             intersection += rule.score(map[new_map[rule]])
-            # print(rule)
-            # print(map[new_map[rule]])
-            # print('intersection +=: ', rule.score(map[new_map[rule]]))
+
     score = intersection / cardinality(rule_set)
     return score
 
@@ -251,6 +246,7 @@ def score(rule_set, tparse):
         for rule in unmapped_rules:
             for tnode in unmapped_tnodes:
                 map[rule] = tnode
+
                 sc = score_wrt_map(map, rule_set, tparse)
                 map.pop(rule)
                 if sc > max:
@@ -258,7 +254,7 @@ def score(rule_set, tparse):
                     candidates = [(rule, tnode)]
                 if sc == max:
                     candidates.append((rule, tnode))
-        # print('candidates:', candidates)
+
         max_cand = 0
         for rule, tnode in candidates:
             cand_score = 0
@@ -271,7 +267,7 @@ def score(rule_set, tparse):
             if cand_score >= max_cand:
                 max_cand = cand_score
                 new_map = (rule, tnode)
-        # print('new map: ', new_map)
+
         map[new_map[0]] = new_map[1]
         max_cand = score_wrt_map(map, rule_set, tparse)
         if current_score >= max_cand:
@@ -280,9 +276,9 @@ def score(rule_set, tparse):
         unmapped_rules.remove(new_map[0])
         unmapped_tnodes.remove(new_map[1])
         current_score = max_cand
-        # print('unmapped rules: ', unmapped_rules)
-        # print('unmapped tnodes: ', unmapped_tnodes)
-    return current_score
+
+    var2term, var2node = var_to_node(map)
+    return current_score, var2term, var2node
 
 
 def cardinality(rule_set):
@@ -359,13 +355,17 @@ def element_mapping(map, rule_set):
             elif pos in element_map:
                 temp.positionals.append(element_map[pos])
         for k, v in rule.kvpairs.items():
+
             if isinstance(v, Term) or not element_to_rule(v, rule_set):
+
                 temp.kvpairs[k] = v
             elif v in element_map:
+
                 temp.kvpairs[k] = element_map[v]
         mapped_rule_set.append(temp)
         new_map[temp] = rule
     return mapped_rule_set, new_map
+
 
 def parse_rule_set(fpath):
     """
@@ -387,19 +387,56 @@ def parse_rule_set(fpath):
             rule += line
     return rs
 
+
 def grade_rules(rs, parse):
     """
     Given a parsed rule set and a given parse, find the rule that best matches the parse
     Currently outputs the score of the parse against every rule, as well as which rule it best matches
     """
     max = 0
+    map = {}
     desc = ""
     for t in rs:
         r = t[0]
         d = t[1]
         s = score(r, parse)
-        if s > max:
+        if s[0] > max:
             desc = d
-            max = s
-        print("Score for rule: " + d + " is: " + str(s)) 
-    print("Match with rule: " + desc + " with a score of: " + str(max))
+            max = s[0]
+            map = s[1]
+
+
+def get_var_list(rule_set):
+    '''
+    Get the list of variables of a rule-set
+    :param rule_set:
+    :return:
+    '''
+    l = []
+    for rule in rule_set:
+        l += [p for p in rule.positionals if isinstance(p, Variable) and p not in l]
+        l += [v for k, v in rule.kvpairs.items() if isinstance(v, Variable) and v not in l]
+    return l
+
+
+def var_to_node(map):
+    '''
+    Produce variable-to-term and variable-to-node mapping
+    :param map:
+    :return:
+        var2term - dict
+        var2node - dict
+    '''
+    var2term = {}
+    var2node = {}
+    if not isinstance(map, dict):
+        raise ValueError('Expect input to be dictionary')
+    for rule, tnode in map.items():
+        var2term[rule_to_element(rule)] = rule_to_element(tnode)
+        for k, v in rule.kvpairs.items():
+            if k in tnode.kvpairs:
+                var2term[v] = tnode.kvpairs[k]
+    for k, v in var2term.items():
+        var2node[k] = element_to_rule(k, map.keys())
+
+    return var2term, var2node

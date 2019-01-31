@@ -46,3 +46,4 @@ if __name__ == '__main__':
                 '(ONT::KIND ONT::V40366 (:* ONT::BAGELS-BISCUITS W::MUFFIN)))'
     matcher.grade_rules(matcher.parse_rule_set("../data/ruleset.txt"), matcher.load_list_set(parse2))
     matcher.grade_rules(matcher.parse_rule_set("../data/ruleset.txt"), matcher.load_list_set(parse3))
+
