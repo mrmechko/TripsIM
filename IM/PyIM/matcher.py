@@ -1,5 +1,5 @@
 import re
-import IM.PyIM.ontologytools as ont
+from pytrips.ontology import load
 
 """
 A trips node is defined as a list of strings with some number of positionals
@@ -15,6 +15,7 @@ there is a one-to-one mapping from the rules to the nodes where all variable ass
 are consistent.
 """
 
+ont = load()
 
 class TripsNode:
     def __init__(self, positionals, kvpairs, type_word=[]):
@@ -50,9 +51,9 @@ class Variable(Element):
             return True
         return False
 
+indicators = ["speechact", "f", "pro", "pro-set"]
 
 class Term(Element):
-    # TODO: check inheritance
     def __init__(self, value):
         self.value = value
 
@@ -64,8 +65,10 @@ class Term(Element):
 
     def __eq__(self, other):
         if type(other) is Term:
-            return self.value.lower() == other.value.lower() or ont.isAncestor(other, self) or ont.isAncestor(self,
-                                                                                                              other)
+            term1, term2 = self.value.lower(), other.value.lower()
+            if term1 in indicators or term2 in indicators:
+                return True
+            return ont[term1] == ont[term2] or ont[term1] < ont[term2] or ont[term2] < ont[term1]
         elif type(other) is Variable:
             return True
         return False
@@ -404,7 +407,8 @@ def grade_rules(rs, parse):
             desc = d
             max = s[0]
             map = s[1]
-
+        print("Score for rule: " + d + " is: " + str(s[0])) 
+    print("Match with rule: " + desc + " with a score of: " + str(max) + " with mapping: " + str(map))
 
 def get_var_list(rule_set):
     '''
