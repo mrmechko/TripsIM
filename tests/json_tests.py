@@ -3,6 +3,11 @@ import json, sys, os
 import TripsIM as PyIM
 from TripsIM import matcher
 
+def lf_equality(a, b):
+    assert len(a) == len(b)
+    for x in a:
+        assert x in b
+
 
 def test_json():
     # "The grass is green" in logical from trips web parser
@@ -13,6 +18,4 @@ def test_json():
     json_form = json.load(open("data/grass.json"))
     normal_form = matcher.load_list_set(normal_form)
     json_form = matcher.load_list_set(json_form)
-    print(normal_form)
-    print(json_form)
-    assert str(normal_form) == str(json_form)
+    lf_equality(normal_form, json_form)
