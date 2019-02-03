@@ -15,6 +15,7 @@ if __name__ == '__main__':
         long_description_content_type="text/markdown",
         url="https://github.com/mrmechko/TripsIM",
         packages=find_packages(exclude=["test", "data"]),
+        install_requires=["pytrips"],
         classifiers=[
             "Programming Language :: Python :: 3",
             "License :: OSI Approved :: MIT License",
