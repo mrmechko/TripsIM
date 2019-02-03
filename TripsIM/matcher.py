@@ -25,8 +25,24 @@ class TripsNode:
     def __repr__(self):
         return "TripsNode<\n\ttype:" + str(self.type_word) + '\n\tpositionals:' + repr(
             self.positionals) + "\n\tkvpairs:" + repr(self.kvpairs) + ">\n"
-        # return'<' + str(self.positionals) + '>\n'
 
+    def __hash__(self):
+        return hash(repr(self))
+
+    def __eq__(self, other):
+        if type(other) is not type(self):
+            return False
+        for t, u in zip(self.positionals, other.positionals):
+            if t != u:
+                return False
+        if self.type_word != other.type_word:
+            return False
+        if len(self.kvpairs) != len(other.kvpairs):
+            return False
+        for x, y in self.kvpairs.items():
+            if other.kvpairs[x] != y:
+                return False
+        return True
 
 class Element:
     def match(self, other) -> bool:
@@ -346,7 +362,7 @@ def element_mapping(map, rule_set):
             break
         temp = Rule(positionals=[], kvpairs={})
         for pos in rule.positionals:
-            ''' 
+            '''
             Variables that cannot be mapped to a rule and Terms are stored as-is;
             Variables not in current mapping are ignored
             '''
