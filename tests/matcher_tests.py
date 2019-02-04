@@ -1,8 +1,6 @@
 import sys, os
-
-sys.path.insert(0, os.path.abspath('../..'))
-import IM.PyIM as PyIM
-from IM.PyIM import matcher
+import TripsIM as PyIM
+from TripsIM import matcher
 
 if __name__ == '__main__':
 

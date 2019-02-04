@@ -1,0 +1,15 @@
+language: python
+python:
+- '3.4'
+- '3.5'
+- '3.6'
+install:
+- pip install -r requirements.txt
+- pip install .
+- python -m nltk.downloader wordnet
+- python -m nltk.downloader stopwords
+script:
+- pytest
+notifications:
+  slack:
+    secure: Qv2hv9ztxz31DnpYLarVNVwGjtkWUGmMbWeoMffMBVHLPpBH/0d4aDB9wGw7Hf/82L159GdiHB1rg6lVDGt/pXIeGWZfYbP+8x8Shkvm7t93Jt1zlqWMyfnCAqRJSCmD4Sd5IraD/ZgK9xsUiXom5+JVwny77HGu0q7kbYVIkNRMden2KT7jpox0VENsl1/lw4f/aXUTCnlbPp5dswNV9742YyfjaQRFDGfePJezgJ15Q02a2QKJuwTwsHa6tbDjz3fptVtL9CxfrSbFELyY28aIfOJKAfmPCs44RTtqo4rad/GK7xKIkUOjkDQIUZ0z2ypRNcJjjNatkKQRFpGqlEb9pObmwN6ZGIn6hGh2KfZUsOlAPBMcyJM5Yw9d842yXGjLh/ff+RBAK5nmvYN52SlKhrvzvtV7owZFCQyByATIaboHJVrhT7FGIdy7rkfqIkFVplCOtK7HApGC/KDosBdxJBWvQvw7MRpfLX4AHCr0SQpcq3ER/y2bD9xyy+9aZEeGnX6knaSB+2jByjyg+VRy0Rok17YnzICtQCGRfGnhPYMrcra55KdS49XrIpujT0qkKrIv3xbtSm/giK9ZFNPvzpiwGuTX0ccy2GE6VOWXSpaU7gSJngcVupbhJsiE5/eLTP+DudQNXTguaR0V4B28sYUnbxsIQ0+lR9JThqg=
