@@ -4,10 +4,10 @@ from TripsIM import matcher
 
 if __name__ == '__main__':
 
-    ''' Test: 
-    match rule-set to itself 
+    ''' Test:
+    match rule-set to itself
     should always get score = 1 '''
-        
+
 
     rule_set = '((ONT::SPEECHACT ?speechact SA_TELL :CONTENT ?content)' \
                '(ONT::F ?content (:* ONT::HAVE-PROPERTY ?word-content) :NEUTRAL ?neutral :FORMAL ?formal :TENSE ONT::PRES)' \
@@ -44,4 +44,3 @@ if __name__ == '__main__':
                 '(ONT::KIND ONT::V40366 (:* ONT::BAGELS-BISCUITS W::MUFFIN)))'
     matcher.grade_rules(matcher.parse_rule_set("../data/ruleset.txt"), matcher.load_list_set(parse2))
     matcher.grade_rules(matcher.parse_rule_set("../data/ruleset.txt"), matcher.load_list_set(parse3))
-
