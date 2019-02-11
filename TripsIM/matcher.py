@@ -1,5 +1,8 @@
 import re
+import logging
 from pytrips.ontology import load
+
+log = logging.getLogger("TripsIM")
 
 """
 A trips node is defined as a list of strings with some number of positionals
@@ -81,10 +84,19 @@ class Term(Element):
 
     def __eq__(self, other):
         if type(other) is Term:
-            term1, term2 = self.value.lower(), other.value.lower()
-            if term1 in indicators or term2 in indicators:
+            term1_val, term2_val = self.value.lower(), other.value.lower()
+            if term1_val in indicators or term2_val in indicators:
                 return True
-            return ont[term1] == ont[term2] or ont[term1] < ont[term2] or ont[term2] < ont[term1]
+            # check that term1 and term2 are both ont types first
+            term1 = ont[term1_val]
+            term2 = ont[term2_val]
+            if not term1 or not term2:
+                log.debug("Type not found:", term1_val, term2_val)
+                # somehow they are equal strings and not indicators
+                return term1_val == term2_val
+            else:
+                log.debug("testing ont types:", term1, term2)
+            return term1 == term2 or term1 < term2 or term2 < term1
         elif type(other) is Variable:
             return True
         return False
@@ -423,8 +435,8 @@ def grade_rules(rs, parse):
             desc = d
             max = s[0]
             map = s[1]
-        print("Score for rule: " + d + " is: " + str(s[0])) 
-    print("Match with rule: " + desc + " with a score of: " + str(max) + " with mapping: " + str(map))
+        log.info("Score for rule: " + d + " is: " + str(s[0]))
+    log.info("Match with rule: " + desc + " with a score of: " + str(max) + " with mapping: " + str(map))
 
 def get_var_list(rule_set):
     '''
