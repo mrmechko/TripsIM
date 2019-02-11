@@ -1,3 +1,12 @@
+import logging
+import logging_tree
+
+log_format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+#logging.basicConfig(format=log_format_string, level=logging.INFO)
+#log = logging.getLogger(__name__)
+
+logging_tree.printout()
+
 import sys, os
 import TripsIM as PyIM
 from TripsIM import matcher

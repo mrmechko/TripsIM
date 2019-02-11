@@ -2,6 +2,8 @@ import re
 import logging
 from pytrips.ontology import load
 
+log = logging.getLogger("TripsIM")
+
 """
 A trips node is defined as a list of strings with some number of positionals
 followed by a sequence of key-value pairs.  A trips parse is a list of nodes.
@@ -89,11 +91,11 @@ class Term(Element):
             term1 = ont[term1_val]
             term2 = ont[term2_val]
             if not term1 or not term2:
-                logging.debug("Type not found:", term1_val, term2_val)
+                log.debug("Type not found:", term1_val, term2_val)
                 # somehow they are equal strings and not indicators
                 return term1_val == term2_val
             else:
-                logging.debug("testing ont types:", term1, term2)
+                log.debug("testing ont types:", term1, term2)
             return term1 == term2 or term1 < term2 or term2 < term1
         elif type(other) is Variable:
             return True
@@ -433,8 +435,8 @@ def grade_rules(rs, parse):
             desc = d
             max = s[0]
             map = s[1]
-        print("Score for rule: " + d + " is: " + str(s[0]))
-    print("Match with rule: " + desc + " with a score of: " + str(max) + " with mapping: " + str(map))
+        log.info("Score for rule: " + d + " is: " + str(s[0]))
+    log.info("Match with rule: " + desc + " with a score of: " + str(max) + " with mapping: " + str(map))
 
 def get_var_list(rule_set):
     '''
