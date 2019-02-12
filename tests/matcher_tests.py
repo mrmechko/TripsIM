@@ -8,7 +8,6 @@ log_format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging_tree.printout()
 
 import sys, os
-import TripsIM as PyIM
 from TripsIM import matcher
 
 if __name__ == '__main__':

@@ -405,38 +405,37 @@ def parse_rule_set(fpath):
     rs = []
     description = ""
     rule = ""
+    name = ""
     for line in open(fpath, 'r').readlines():
         if line[0] == '#':
             description = line[2:]
         elif line[0] == '/':
             assert True
+        elif line[0] == '>':
+            name = line[2:]
         elif line[0] == '-':
             if rule != "":
-                rs.append((load_list_set(rule.replace("\n", "")), description.replace("\n", "")))
-                rule, description = "", ""
+                rs.append((load_list_set(rule.replace("\n", "")), description.replace("\n", ""), name.replace("\n", "")))
+                name, rule, description = "", "", ""
         else:
             rule += line
     return rs
 
 
-def grade_rules(rs, parse):
+def grade_rules(ruleset, parse):
     """
     Given a parsed rule set and a given parse, find the rule that best matches the parse
     Currently outputs the score of the parse against every rule, as well as which rule it best matches
     """
-    max = 0
-    map = {}
+    results = {}
     desc = ""
-    for t in rs:
-        r = t[0]
-        d = t[1]
-        s = score(r, parse)
-        if s[0] > max:
-            desc = d
-            max = s[0]
-            map = s[1]
-        log.info("Score for rule: " + d + " is: " + str(s[0]))
-    log.info("Match with rule: " + desc + " with a score of: " + str(max) + " with mapping: " + str(map))
+    for rule, description, name in ruleset:
+        _score, mapping, _s2 = score(rule, parse)
+        results[name] = (_score, mapping, description)
+
+    _score, mapping, desc = max(results.values(), key=lambda x: x[0])
+    log.info("Match with rule: {desc} with a score of: {_score} with mapping: {mapping}".format(desc=desc, _score=_score, mapping=mapping))
+    return results
 
 def get_var_list(rule_set):
     '''
