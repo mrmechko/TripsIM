@@ -1,6 +1,4 @@
 import json, sys, os
-#sys.path.insert(0, os.path.abspath('../..'))
-import TripsIM as PyIM
 from TripsIM import matcher
 import pprint
 

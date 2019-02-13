@@ -1,4 +1,5 @@
 import re
+from typing import List
 from pytrips.ontology import load
 
 """
@@ -17,8 +18,9 @@ are consistent.
 
 ont = load()
 
+
 class TripsNode:
-    def __init__(self, positionals, kvpairs, type_word=[]):
+    def __init__(self, positionals, kvpairs, type_word=None):
         self.positionals = positionals
         self.kvpairs = kvpairs
         self.type_word = type_word
@@ -45,6 +47,7 @@ class TripsNode:
                 return False
         return True
 
+
 class Element:
     def match(self, other) -> bool:
         return self == other
@@ -67,7 +70,9 @@ class Variable(Element):
             return True
         return False
 
+
 indicators = ["speechact", "f", "pro", "pro-set"]
+
 
 class Term(Element):
     def __init__(self, value):
@@ -92,7 +97,10 @@ class Term(Element):
 
 class Rule:
 
-    def __init__(self, positionals=None, kvpairs=None, type_word=[], tnode=None):
+    def __init__(self, positionals: List = None,
+                 kvpairs: dict = None,
+                 type_word: List = None,
+                 tnode: TripsNode = None) -> None:
         if tnode:
             self.positionals = tnode.positionals
             self.kvpairs = tnode.kvpairs
@@ -134,7 +142,7 @@ class Rule:
         return p + kv
 
 
-def get_element(e):
+def get_element(e: str) -> Element:
     if e[0] == "?":
         return Variable(e)
     return Term(e)
@@ -169,7 +177,7 @@ def json_to_lisp(js):
     return lf
 
 
-def load_list_set(lf):
+def load_list_set(lf: str) -> List[TripsNode]:
     """
     :param lf: string in logical form or as a json object
         e.g. ((ONT::SPEECHACT ?x ONT::SA_REQUEST :CONTENT ?!theme)(ONT::F ?!theme ?type :force ?f)
@@ -185,7 +193,7 @@ def load_list_set(lf):
     return rules
 
 
-def load_list(values, typ=TripsNode):
+def load_list(values: str, typ=TripsNode):
     type_word = []
     kvpair = {}
     values = values.strip()
@@ -209,7 +217,7 @@ def load_list(values, typ=TripsNode):
     return typ(positionals, kvpair, type_word)
 
 
-def format_rule(input):
+def format_rule(input: str) -> str:
     """
     :param input: string in logical form
     :return: string without parens
@@ -223,19 +231,19 @@ def format_rule(input):
     return ret
 
 
-def score_wrt_map(map, rule_set, tparse):
+def score_wrt_map(map_: dict, rule_set, tparse):
     """
     Score a pair (rule_set, tparse) with respect to a rule-to-tnode mapping
-    :param map: dict{ rule: tnode}
+    :param map_: dict{ rule: tnode}
     :param rule_set:
     :param tparse:
     :return: score
     """
     intersection = 0
-    mapped_rule_set, new_map = element_mapping(map, rule_set)
+    mapped_rule_set, new_map = element_mapping(map_, rule_set)
     for rule in mapped_rule_set:
-        if new_map[rule] in map:
-            intersection += rule.score(map[new_map[rule]])
+        if new_map[rule] in map_:
+            intersection += rule.score(map_[new_map[rule]])
 
     score = intersection / cardinality(rule_set)
     return score
@@ -343,7 +351,7 @@ def rule_to_element(rule):
     return rule.positionals[1]
 
 
-def element_mapping(map, rule_set):
+def element_mapping(map_: dict, rule_set: List):
     """
     Translate the rule_set using the mapping
     :param map:
@@ -357,11 +365,11 @@ def element_mapping(map, rule_set):
     new_map = {}
     ''' get element-wise mapping '''
     for rule in rule_set:
-        if rule in map:
-            element_map[rule_to_element(rule)] = rule_to_element(map[rule])
+        if rule in map_:
+            element_map[rule_to_element(rule)] = rule_to_element(map_[rule])
     ''' translate the rule set '''
     for rule in rule_set:
-        if rule not in map:
+        if rule not in map_:
             break
         temp = Rule(positionals=[], kvpairs={})
         for pos in rule.positionals:
@@ -423,10 +431,11 @@ def grade_rules(rs, parse):
             desc = d
             max = s[0]
             map = s[1]
-        print("Score for rule: " + d + " is: " + str(s[0])) 
+        print("Score for rule: " + d + " is: " + str(s[0]))
     print("Match with rule: " + desc + " with a score of: " + str(max) + " with mapping: " + str(map))
 
-def get_var_list(rule_set):
+
+def get_var_list(rule_set: List) -> List[Variable]:
     '''
     Get the list of variables of a rule-set
     :param rule_set:
@@ -439,24 +448,24 @@ def get_var_list(rule_set):
     return l
 
 
-def var_to_node(map):
+def var_to_node(map_: dict) -> (dict, dict):
     '''
     Produce variable-to-term and variable-to-node mapping
-    :param map:
+    :param _map:
     :return:
         var2term - dict
         var2node - dict
     '''
     var2term = {}
     var2node = {}
-    if not isinstance(map, dict):
+    if not isinstance(map_, dict):
         raise ValueError('Expect input to be dictionary')
-    for rule, tnode in map.items():
+    for rule, tnode in map_.items():
         var2term[rule_to_element(rule)] = rule_to_element(tnode)
         for k, v in rule.kvpairs.items():
-            if k in tnode.kvpairs:
+            if k in tnode.kvpairs and isinstance(v, Variable):
                 var2term[v] = tnode.kvpairs[k]
     for k, v in var2term.items():
-        var2node[k] = element_to_rule(k, map.keys())
+        var2node[k] = element_to_rule(k, map_.keys())
 
     return var2term, var2node
