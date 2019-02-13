@@ -180,6 +180,96 @@ def json_to_lisp(js):
         lf += ")"
     return lf
 
+def lisp_to_json(lisp):
+    """
+    :param lisp: a lisp string representing logical form
+    :return: a json object representing same logical form
+    """
+    def matching_paren(s, i):
+        """
+        :param s: a tokenized string
+        :param i: index of '(' to be matched
+        :return: index of the ')' that matches the '('
+        """
+        unmatched_open, i = 1, i + 1
+        while i < len(s):
+            if s[i] == '(':
+                unmatched_open += 1
+            elif s[i] == ')':
+                unmatched_open -= 1
+                if unmatched_open == 0:
+                    return i
+            i += 1
+        raise ValueError("Lisp input not well formed")
+
+    def create_node_set(s):
+        """
+        :param s: a portion of the tokenized string representing node set
+        :return: a dictionary containing the processed substring
+        """
+        def create_node(s):
+            """
+            :param s: a portion of the tokenized string representing a node
+            :return: a tuple of type (name of node, dictionary entry for node)
+            """
+            def strip_tag(s):
+                """
+                :param s: a string with a tag to be removed
+                :return: the string with tag removed
+                """
+                return s[s.rfind(':')+1:len(s)]
+            def modify_if_variable(s):
+                """
+                :param s: a string with tags removed
+                :return: '#s' if variable, 's' otherwise
+                """
+                if s[0] == 'V' and s[1:].isDigit():
+                    return "#" + s
+                return s
+            node, roles, i = {}, {}, 3
+            node["indicator"] = s[0]
+            node["id"] = s[1]
+            # If true then it's a type word pair, else it's just a type
+            if s[2] == '(':
+                node["type"] = strip_tag(s[4])
+                node["word"] = strip_tag(s[5])
+                i = 6
+            else:
+                node["type"] = strip_tag(s[2])
+                node["word"] = None
+            # Add in roles for each key-value pair
+            while i < len(s):
+                role = strip_tag(s[i])
+                entry = modify_if_variable(strip_tag(s[i+1]))
+                roles[role] = entry
+                i += 2
+            node["roles"] = roles
+
+            return (node["id"], node)
+        
+        node_set, i = {}, 0
+        if s[i] != '(':
+            raise ValueError("Lisp input not well formed")
+        while i < len(tokens):
+            end_of_node = matching_paren(s, i)
+            node = create_node(s[i+1:end_of_node])
+            node_set[node[0]] = node[1]
+            i = end_of_node + 1
+
+        return node_set
+
+    # Tokenize lisp string on '(', ')', and ' ' while removing spaces
+    tokens, json, i = re.split('[^()\s]+|[()]', lisp), [], 0
+    # Add every node set to json object
+    if tokens[i] != '(':
+        raise ValueError("Lisp input not well formed")
+    while i < len(tokens):
+        end_of_set = matching_paren(tokens, i)
+        json.append(create_node_set(tokens[i+1:end_of_set]))
+        i = end_of_set + 1
+    return json
+
+
 
 def load_list_set(lf):
     """
