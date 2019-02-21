@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import List, Dict
 from pytrips.ontology import load
 
 """
@@ -98,7 +98,7 @@ class Term(Element):
 class Rule:
 
     def __init__(self, positionals: List = None,
-                 kvpairs: dict = None,
+                 kvpairs: Dict[Element, Element] = None,
                  type_word: List = None,
                  tnode: TripsNode = None) -> None:
         if tnode:
@@ -160,7 +160,7 @@ def json_to_lisp(js):
             if type(entry) == dict:
                 indicator, word, typ, roles = entry["indicator"], entry["word"], entry["type"], entry["roles"]
                 lf += "(ONT::" + indicator + " " + name
-                if word == None:
+                if word is None:
                     lf += " " + typ
                 else:
                     lf += " (:* ONT::" + typ + " W::" + word + ")"
@@ -187,9 +187,11 @@ def load_list_set(lf: str) -> List[TripsNode]:
     """
     if type(lf) != str:
         lf = json_to_lisp(lf)
-    rules = re.split(r'\)[^\S\n\t]*\(', lf)
+    rules = re.split(r'\)[\n\t\s]*\(', lf)
+    print('after split: ', rules)
     rules = [format_rule(x) for x in rules]
     rules = [load_list(x) for x in rules]
+    print(rules)
     return rules
 
 
@@ -231,7 +233,7 @@ def format_rule(input: str) -> str:
     return ret
 
 
-def score_wrt_map(map_: dict, rule_set, tparse):
+def score_wrt_map(map_: Dict[Rule, TripsNode], rule_set: List[Rule]):
     """
     Score a pair (rule_set, tparse) with respect to a rule-to-tnode mapping
     :param map_: dict{ rule: tnode}
@@ -249,7 +251,7 @@ def score_wrt_map(map_: dict, rule_set, tparse):
     return score
 
 
-def score(rule_set, tparse):
+def score(rule_set: List[Rule], tparse: List[TripsNode]):
     """
     Find the highest-scoring mapping between rules and tnodes
     by greedily finding the pair (rule: tnode) that improve the score by largest number
@@ -260,26 +262,26 @@ def score(rule_set, tparse):
     :param tparse:
     :return: the score of tparse against rule_set
     """
-    map = {}
+    map_ = {}
     current_score = 0
     unmapped_tnodes = [tnode for tnode in tparse]
     unmapped_rules = [rule for rule in rule_set]
     while unmapped_rules:
         new_map = ()
-        max = 0
+        max_ = 0
         candidates = []
         if not unmapped_tnodes:
             raise ValueError('Not enough Tnodes in Trips parse')
         for rule in unmapped_rules:
             for tnode in unmapped_tnodes:
-                map[rule] = tnode
+                map_[rule] = tnode
 
-                sc = score_wrt_map(map, rule_set, tparse)
-                map.pop(rule)
-                if sc > max:
-                    max = sc
+                sc = score_wrt_map(map_, rule_set)
+                map_.pop(rule)
+                if sc > max_:
+                    max_ = sc
                     candidates = [(rule, tnode)]
-                if sc == max:
+                if sc == max_:
                     candidates.append((rule, tnode))
 
         max_cand = 0
@@ -295,20 +297,20 @@ def score(rule_set, tparse):
                 max_cand = cand_score
                 new_map = (rule, tnode)
 
-        map[new_map[0]] = new_map[1]
-        max_cand = score_wrt_map(map, rule_set, tparse)
+        map_[new_map[0]] = new_map[1]
+        max_cand = score_wrt_map(map_, rule_set)
         if current_score >= max_cand:
-            map.pop(new_map[0])
+            map_.pop(new_map[0])
             return current_score
         unmapped_rules.remove(new_map[0])
         unmapped_tnodes.remove(new_map[1])
         current_score = max_cand
 
-    var2term, var2node = var_to_node(map)
+    var2term, var2node = var_to_node(map_)
     return current_score, var2term, var2node
 
 
-def cardinality(rule_set):
+def cardinality(rule_set: List[Rule]):
     """
     Used for normalizing scores
     :param rule_set:
@@ -347,14 +349,14 @@ def element_to_rule(e, rule_set):
     raise ValueError('Element {} not in rule set'.format(e))
 
 
-def rule_to_element(rule):
+def rule_to_element(rule: Rule):
     return rule.positionals[1]
 
 
-def element_mapping(map_: dict, rule_set: List):
+def element_mapping(map_: Dict[Rule, TripsNode], rule_set: List[Rule]):
     """
     Translate the rule_set using the mapping
-    :param map:
+    :param map_:
     :param rule_set:
     :return:
         mapped rule set
@@ -435,23 +437,23 @@ def grade_rules(rs, parse):
     print("Match with rule: " + desc + " with a score of: " + str(max) + " with mapping: " + str(map))
 
 
-def get_var_list(rule_set: List) -> List[Variable]:
+def get_var_list(rule_set: List[Rule]) -> List[Variable]:
     '''
     Get the list of variables of a rule-set
     :param rule_set:
     :return:
     '''
-    l = []
+    l = []  # type: List[Variable]
     for rule in rule_set:
         l += [p for p in rule.positionals if isinstance(p, Variable) and p not in l]
         l += [v for k, v in rule.kvpairs.items() if isinstance(v, Variable) and v not in l]
     return l
 
 
-def var_to_node(map_: dict) -> (dict, dict):
+def var_to_node(map_: Dict[Rule, TripsNode]) -> (Dict[Variable, Term], Dict[Variable, TripsNode]):
     '''
     Produce variable-to-term and variable-to-node mapping
-    :param _map:
+    :param map_:
     :return:
         var2term - dict
         var2node - dict
