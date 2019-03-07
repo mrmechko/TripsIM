@@ -30,3 +30,12 @@ def test_json():
     norm = matcher.load_list_set(normal_form)
     jsrm = matcher.load_list_set(json_form)
     lf_equality(norm, jsrm)
+
+def test_json_conversion():
+    # "The grass is green" in logical form from trips web parser
+    json_form = matcher.lisp_to_json(normal_form)
+    norm = matcher.load_list_set(normal_form)
+    jsrm = matcher.load_list_set(json_form)
+    lf_equality(norm, jsrm)
+
+test_json_conversion()

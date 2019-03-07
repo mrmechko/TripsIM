@@ -223,9 +223,10 @@ def lisp_to_json(lisp):
                 :param s: a string with tags removed
                 :return: '#s' if variable, 's' otherwise
                 """
-                if s[0] == 'V' and s[1:].isDigit():
+                if s[0] == 'V' and s[1:].isdigit():
                     return "#" + s
                 return s
+            print("Making a node out of " + str(s))
             node, roles, i = {}, {}, 3
             node["indicator"] = s[0]
             node["id"] = s[1]
@@ -233,7 +234,7 @@ def lisp_to_json(lisp):
             if s[2] == '(':
                 node["type"] = strip_tag(s[4])
                 node["word"] = strip_tag(s[5])
-                i = 6
+                i = 7
             else:
                 node["type"] = strip_tag(s[2])
                 node["word"] = None
@@ -244,7 +245,7 @@ def lisp_to_json(lisp):
                 roles[role] = entry
                 i += 2
             node["roles"] = roles
-
+            print(node)
             return (node["id"], node)
         
         node_set, i = {}, 0
@@ -259,8 +260,17 @@ def lisp_to_json(lisp):
         return node_set
 
     # Tokenize lisp string on '(', ')', and ' ' while removing spaces
-    tokens, json, i = re.split('[^()\s]+|[()]', lisp), [], 0
+    def tokenize(lisp):
+        """
+        :param lisp: a lisp string to be tokenized
+        :return: the tokenized form of lisp input
+        """
+        # There may be a way to do this in a single re
+        return [x for x in re.split(r'([()\s])', lisp) if x not in [' ', '\n', '']]
+
+    tokens, json, i = tokenize(lisp), [], 0
     # Add every node set to json object
+    print(tokens)
     if tokens[i] != '(':
         raise ValueError("Lisp input not well formed")
     while i < len(tokens):
