@@ -1,0 +1,165 @@
+[
+    {
+        "description": "!x wants !y",
+        "example": "John wants candy",
+        "rule": [
+            {
+              "V43487": {
+                "id": "V43487",
+                "indicator": "SPEECHACT",
+                "type": "SA_TELL",
+                "word": null,
+                "roles": {
+                  "CONTENT": "#V43403",
+                  "LEX": "WANT"
+                }
+              },
+              "V43403": {
+                "id": "V43403",
+                "indicator": "F",
+                "type": "WANT",
+                "word": "WANT",
+                "roles": {
+                  "EXPERIENCER": "?x",
+                  "NEUTRAL": "?y",
+                  "TENSE": "PRES",
+                  "LEX": "WANT"
+                }
+              },
+              "root": "#V43487"
+            }
+          ]
+    },
+
+    {
+        "description": "Does !x exist?",
+        "example": "Do I exist?",
+        "rule": [
+            {
+              "V40083": {
+                "id": "V40083",
+                "indicator": "SPEECHACT",
+                "type": "SA_YN-QUESTION",
+                "word": null,
+                "roles": {
+                  "PUNCTYPE": "YNQ",
+                  "CONTENT": "#V40030",
+                  "LEX": "EXIST"
+                }
+              },
+              "V40030": {
+                "id": "V40030",
+                "indicator": "F",
+                "type": "EXISTS",
+                "word": "EXIST",
+                "roles": {
+                  "NEUTRAL": "?x",
+                  "TENSE": "PRES",
+                  "MODALITY": "(:* DO DO)",
+                  "LEX": "EXIST"
+                }
+              },
+              "root": "V40083"
+            }
+          ]
+    },
+
+    {
+        "description": "Does !x know !y?",
+        "example": "Do you know me?",
+        "rule": [
+            {
+              "V40526": {
+                "id": "V40526",
+                "indicator": "SPEECHACT",
+                "type": "SA_YN-QUESTION",
+                "word": null,
+                "roles": {
+                  "PUNCTYPE": "YNQ",
+                  "CONTENT": "#V40370",
+                  "LEX": "KNOW"
+                }
+              },
+              "V40370": {
+                "id": "V40370",
+                "indicator": "F",
+                "type": "KNOW",
+                "word": "KNOW",
+                "roles": {
+                  "EXPERIENCER": "?x",
+                  "NEUTRAL": "?y",
+                  "TENSE": "PRES",
+                  "MODALITY": "(:* DO DO)",
+                  "LEX": "KNOW"
+                }
+              },
+              "root": "V40526"
+            }
+          ]
+    },
+    
+    {
+        "description": "!x is !y",
+        "example": "The block is red",
+        "rule": [
+            {
+              "V41613": {
+                "id": "V41613",
+                "indicator": "SPEECHACT",
+                "type": "SA_TELL",
+                "word": null,
+                "roles": {
+                  "CONTENT": "#V41534",
+                  "LEX": "ARE"
+                }
+              },
+              "V41534": {
+                "id": "V41534",
+                "indicator": "F",
+                "type": "HAVE-PROPERTY",
+                "word": "BE",
+                "roles": {
+                  "NEUTRAL": "?x",
+                  "FORMAL": "?y",
+                  "TENSE": "PRES",
+                  "LEX": "ARE"
+                }
+              },
+              "root": "V41613"
+            }
+          ]
+    },
+
+    {
+        "description": "!x eats !y",
+        "example": "I eat grapes",
+        "rule": [
+            {
+              "V41820": {
+                "id": "V41820",
+                "indicator": "SPEECHACT",
+                "type": "SA_TELL",
+                "word": null,
+                "roles": {
+                  "CONTENT": "#V41762",
+                  "LEX": "EAT"
+                }
+              },
+              "V41762": {
+                "id": "V41762",
+                "indicator": "F",
+                "type": "EAT",
+                "word": "EAT",
+                "roles": {
+                  "AGENT": "?x",
+                  "AFFECTED": "?y",
+                  "TENSE": "PRES",
+                  "LEX": "EAT"
+                }
+              },
+              "root": "V41820"
+            }
+          ]
+
+    }
+]

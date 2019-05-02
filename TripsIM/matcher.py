@@ -1,8 +1,6 @@
-import re
-import logging
+import re, json
+from typing import List, Dict
 from pytrips.ontology import load
-
-log = logging.getLogger("TripsIM")
 
 """
 A trips node is defined as a list of strings with some number of positionals
@@ -20,8 +18,9 @@ are consistent.
 
 ont = load()
 
+
 class TripsNode:
-    def __init__(self, positionals, kvpairs, type_word=[]):
+    def __init__(self, positionals, kvpairs, type_word=None):
         self.positionals = positionals
         self.kvpairs = kvpairs
         self.type_word = type_word
@@ -44,9 +43,12 @@ class TripsNode:
         if len(self.kvpairs) != len(other.kvpairs):
             return False
         for x, y in self.kvpairs.items():
+            if x not in other.kvpairs:
+                return False
             if other.kvpairs[x] != y:
                 return False
         return True
+
 
 class Element:
     def match(self, other) -> bool:
@@ -70,7 +72,9 @@ class Variable(Element):
             return True
         return False
 
+
 indicators = ["speechact", "f", "pro", "pro-set"]
+
 
 class Term(Element):
     def __init__(self, value):
@@ -84,19 +88,14 @@ class Term(Element):
 
     def __eq__(self, other):
         if type(other) is Term:
-            term1_val, term2_val = self.value.lower(), other.value.lower()
-            if term1_val in indicators or term2_val in indicators:
+            term1, term2 = self.value.lower(), other.value.lower()
+            if term1 in indicators or term2 in indicators:
                 return True
-            # check that term1 and term2 are both ont types first
-            term1 = ont[term1_val]
-            term2 = ont[term2_val]
-            if not term1 or not term2:
-                log.debug("Type not found:", term1_val, term2_val)
-                # somehow they are equal strings and not indicators
-                return term1_val == term2_val
-            else:
-                log.debug("testing ont types:", term1, term2)
-            return term1 == term2 or term1 < term2 or term2 < term1
+            if str(ont[term1]) == "None":
+                return str(ont[term2]) == "None"
+            if str(ont[term2]) == "None":
+                return str(ont[term1]) == "None"
+            return ont[term1] == ont[term2] or ont[term1] < ont[term2] or ont[term2] < ont[term1]
         elif type(other) is Variable:
             return True
         return False
@@ -104,7 +103,10 @@ class Term(Element):
 
 class Rule:
 
-    def __init__(self, positionals=None, kvpairs=None, type_word=[], tnode=None):
+    def __init__(self, positionals: List = None,
+                 kvpairs: Dict[Element, Element] = None,
+                 type_word: List = None,
+                 tnode: TripsNode = None) -> None:
         if tnode:
             self.positionals = tnode.positionals
             self.kvpairs = tnode.kvpairs
@@ -146,214 +148,51 @@ class Rule:
         return p + kv
 
 
-def get_element(e):
-    if e[0] == "?":
-        return Variable(e)
-    return Term(e)
+def get_element(elem: str) -> Element:
+    if elem[0] == "?":
+        return Variable(elem)
+    return Term(elem)
 
 
-def json_to_lisp(js):
+def load_list_set(lf: str) -> List[TripsNode]:
     """
-    :param js: json object representing logical form
-    :return: a string in logical form in lisp format
-    """
-    lf = ""
-    for data in js:
-        lf += "("
-        for name, entry in data.items():
-            if type(entry) == dict:
-                indicator, word, typ, roles = entry["indicator"], entry["word"], entry["type"], entry["roles"]
-                lf += "(ONT::" + indicator + " " + name
-                if word == None:
-                    lf += " " + typ
-                else:
-                    lf += " (:* ONT::" + typ + " W::" + word + ")"
-                for role, var in roles.items():
-                    if role != "LEX":
-                        if var[0] == "#":
-                            lf += " :" + role + " " + var[1:]
-                        elif var[0] == "?":
-                            lf += " :" + role + " " + var
-                        else:
-                            lf += " :" + role + " ONT::" + var
-                lf += ")"
-        lf += ")"
-    return lf
-
-def lisp_to_json(lisp):
-    """
-    :param lisp: a lisp string representing logical form
-    :return: a json object representing same logical form
-    """
-    def matching_paren(s, i):
-        """
-        :param s: a tokenized string
-        :param i: index of '(' to be matched
-        :return: index of the ')' that matches the '('
-        """
-        unmatched_open, i = 1, i + 1
-        while i < len(s):
-            if s[i] == '(':
-                unmatched_open += 1
-            elif s[i] == ')':
-                unmatched_open -= 1
-                if unmatched_open == 0:
-                    return i
-            i += 1
-        raise ValueError("Lisp input not well formed")
-
-    def create_node_set(s):
-        """
-        :param s: a portion of the tokenized string representing node set
-        :return: a dictionary containing the processed substring
-        """
-        def create_node(s):
-            """
-            :param s: a portion of the tokenized string representing a node
-            :return: a tuple of type (name of node, dictionary entry for node)
-            """
-            def strip_tag(s):
-                """
-                :param s: a string with a tag to be removed
-                :return: the string with tag removed
-                """
-                return s[s.rfind(':')+1:len(s)]
-            def modify_if_variable(s):
-                """
-                :param s: a string with tags removed
-                :return: '#s' if variable, 's' otherwise
-                """
-                if s[0] == 'V' and s[1:].isdigit():
-                    return "#" + s
-                return s
-            print("Making a node out of " + str(s))
-            node, roles, i = {}, {}, 3
-            node["indicator"] = s[0]
-            node["id"] = s[1]
-            # If true then it's a type word pair, else it's just a type
-            if s[2] == '(':
-                node["type"] = strip_tag(s[4])
-                node["word"] = strip_tag(s[5])
-                i = 7
-            else:
-                node["type"] = strip_tag(s[2])
-                node["word"] = None
-            # Add in roles for each key-value pair
-            while i < len(s):
-                role = strip_tag(s[i])
-                entry = modify_if_variable(strip_tag(s[i+1]))
-                roles[role] = entry
-                i += 2
-            node["roles"] = roles
-            print(node)
-            return (node["id"], node)
-        
-        node_set, i = {}, 0
-        if s[i] != '(':
-            raise ValueError("Lisp input not well formed")
-        while i < len(tokens):
-            end_of_node = matching_paren(s, i)
-            node = create_node(s[i+1:end_of_node])
-            node_set[node[0]] = node[1]
-            i = end_of_node + 1
-
-        return node_set
-
-    # Tokenize lisp string on '(', ')', and ' ' while removing spaces
-    def tokenize(lisp):
-        """
-        :param lisp: a lisp string to be tokenized
-        :return: the tokenized form of lisp input
-        """
-        # There may be a way to do this in a single re
-        return [x for x in re.split(r'([()\s])', lisp) if x not in [' ', '\n', '']]
-
-    tokens, json, i = tokenize(lisp), [], 0
-    # Add every node set to json object
-    print(tokens)
-    if tokens[i] != '(':
-        raise ValueError("Lisp input not well formed")
-    while i < len(tokens):
-        end_of_set = matching_paren(tokens, i)
-        json.append(create_node_set(tokens[i+1:end_of_set]))
-        i = end_of_set + 1
-    return json
-
-
-
-def load_list_set(lf):
-    """
-    :param lf: string in logical form or as a json object
-        e.g. ((ONT::SPEECHACT ?x ONT::SA_REQUEST :CONTENT ?!theme)(ONT::F ?!theme ?type :force ?f)
-        lf might contain several rules
+    :param lf: logical form as a json object
     :return: the list of Rule objects
-    TODO: doesn't work with triple quoted string for some reason
     """
-    if type(lf) != str:
-        lf = json_to_lisp(lf)
-    rules = re.split(r'\)[^\S\n\t]*\(', lf)
-    rules = [format_rule(x) for x in rules]
-    rules = [load_list(x) for x in rules]
+    rules = []
+    for r in lf:
+        for name, tnode in r.items():
+            if name != "root":
+                type_word = [get_element(tnode["type"])]
+                if tnode["word"] is not None:
+                    type_word.append(get_element(tnode["word"]))
+                positionals = [get_element(tnode["indicator"]), get_element(tnode["id"])]
+                kvpair = {}
+                for k, v in tnode["roles"].items():
+                    if k != "LEX":
+                        kvpair[get_element(k)] = get_element(v.replace('#', ''))
+                rules.append(TripsNode(positionals, kvpair, type_word))
     return rules
 
 
-def load_list(values, typ=TripsNode):
-    type_word = []
-    kvpair = {}
-    values = values.strip()
-    part1 = re.split(r':', values)[0]
-    part2 = values.replace(part1, '')
-    part1_list = part1.split('%')
-    positionals = part1_list[0].split()
-    if len(part1_list) > 1:
-        type_word = part1.split('%')[1].split()
-        type_word = [get_element(e) for e in type_word]
-    positionals = [get_element(e) for e in positionals]
-    part2 = part2.strip().split(':')
-    for e in part2:
-        if e.split():
-            lst = e.split()
-            if len(lst) == 2:
-                kvpair[get_element(lst[0])] = get_element(lst[1])
-            else:
-                lst = e.replace('%', '').split()
-                kvpair[get_element(lst[0])] = get_element(lst[1] + ' ' + lst[2])
-    return typ(positionals, kvpair, type_word)
-
-
-def format_rule(input):
-    """
-    :param input: string in logical form
-    :return: string without parens
-    TODO: Currently simply gets rid of patterns like (:* ONT::PLANT W::GRASS)
-    """
-    ret = re.sub(r'\([\s\t]*:[\s\t]*\*(.+?)\)', r'% \1 %', input)
-    ''' replace (:* with % '''
-    # ret = re.sub(r'\([\s\t]*:[\s\t]*\*', '% ', input)
-    ret = ret.replace('(', ' ').replace(')', ' ')
-    ret = ret.replace('ONT::', '').replace('W::', '')
-    return ret
-
-
-def score_wrt_map(map, rule_set, tparse):
+def score_wrt_map(map_: Dict[Rule, TripsNode], rule_set: List[Rule]):
     """
     Score a pair (rule_set, tparse) with respect to a rule-to-tnode mapping
-    :param map: dict{ rule: tnode}
+    :param map_: dict{ rule: tnode}
     :param rule_set:
     :param tparse:
     :return: score
     """
     intersection = 0
-    mapped_rule_set, new_map = element_mapping(map, rule_set)
+    mapped_rule_set, new_map = element_mapping(map_, rule_set)
     for rule in mapped_rule_set:
-        if new_map[rule] in map:
-            intersection += rule.score(map[new_map[rule]])
+        if new_map[rule] in map_:
+            intersection += rule.score(map_[new_map[rule]])
 
-    score = intersection / cardinality(rule_set)
-    return score
+    return intersection / cardinality(rule_set)
 
 
-def score(rule_set, tparse):
+def score(rule_set: List[Rule], tparse: List[TripsNode]):
     """
     Find the highest-scoring mapping between rules and tnodes
     by greedily finding the pair (rule: tnode) that improve the score by largest number
@@ -364,26 +203,21 @@ def score(rule_set, tparse):
     :param tparse:
     :return: the score of tparse against rule_set
     """
-    map = {}
-    current_score = 0
+    map_, current_score = {}, 0
     unmapped_tnodes = [tnode for tnode in tparse]
     unmapped_rules = [rule for rule in rule_set]
     while unmapped_rules:
-        new_map = ()
-        max = 0
-        candidates = []
+        new_map, max_, candidates = (), 0, []
         if not unmapped_tnodes:
             raise ValueError('Not enough Tnodes in Trips parse')
         for rule in unmapped_rules:
             for tnode in unmapped_tnodes:
-                map[rule] = tnode
-
-                sc = score_wrt_map(map, rule_set, tparse)
-                map.pop(rule)
-                if sc > max:
-                    max = sc
-                    candidates = [(rule, tnode)]
-                if sc == max:
+                map_[rule] = tnode
+                rule_score = score_wrt_map(map_, rule_set)
+                map_.pop(rule)
+                if rule_score > max_:
+                    max_, candidates = rule_score, [(rule, tnode)]
+                if rule_score == max_:
                     candidates.append((rule, tnode))
 
         max_cand = 0
@@ -399,20 +233,20 @@ def score(rule_set, tparse):
                 max_cand = cand_score
                 new_map = (rule, tnode)
 
-        map[new_map[0]] = new_map[1]
-        max_cand = score_wrt_map(map, rule_set, tparse)
+        map_[new_map[0]] = new_map[1]
+        max_cand = score_wrt_map(map_, rule_set)
         if current_score >= max_cand:
-            map.pop(new_map[0])
+            map_.pop(new_map[0])
             return current_score
         unmapped_rules.remove(new_map[0])
         unmapped_tnodes.remove(new_map[1])
         current_score = max_cand
 
-    var2term, var2node = var_to_node(map)
+    var2term, var2node = var_to_node(map_)
     return current_score, var2term, var2node
 
 
-def cardinality(rule_set):
+def cardinality(rule_set: List[Rule]):
     """
     Used for normalizing scores
     :param rule_set:
@@ -424,8 +258,10 @@ def cardinality(rule_set):
         card += len([k for k in rule.kvpairs])
     return card
 
+def rule_to_element(rule: Rule):
+    return rule.positionals[1]
 
-def element_to_rule(e, rule_set):
+def element_to_rule(elem, rule_set):
     '''
     Find the rule corresponding to element e
     If e is seen in the rule set but has no corresponding rule, return None
@@ -434,67 +270,62 @@ def element_to_rule(e, rule_set):
     :param rule_set:
     :return:
     '''
-    if isinstance(e, Term):
-        name2 = e.value
+    if isinstance(elem, Term):
+        name2 = elem.value
     else:
-        name2 = e.name
+        name2 = elem.name
+    
     for rule in rule_set:
-        if isinstance(rule.positionals[1], Term):
-            name = rule.positionals[1].value
+        positionals = rule_to_element(rule)
+        if isinstance(positionals, Term):
+            name = positionals.value
         else:
-            name = rule.positionals[1].name
+            name = positionals.name
         if name == name2:
             return rule
     for rule in rule_set:
-        if e in rule.positionals or e in rule.kvpairs.values():
+        if elem in rule.positionals or elem in rule.kvpairs.values():
             return None
-    raise ValueError('Element {} not in rule set'.format(e))
+    raise ValueError('Element {} not in rule set'.format(elem))
 
 
-def rule_to_element(rule):
-    return rule.positionals[1]
-
-
-def element_mapping(map, rule_set):
+def element_mapping(map_: Dict[Rule, TripsNode], rule_set: List[Rule]):
     """
     Translate the rule_set using the mapping
-    :param map:
+    :param map_:
     :param rule_set:
     :return:
         mapped rule set
         a map between original and new rule set: {rule: new rule}
     """
-    element_map = {}
-    mapped_rule_set = []
-    new_map = {}
+    element_map, mapped_rule_set, new_map = {}, [], {}
     ''' get element-wise mapping '''
     for rule in rule_set:
-        if rule in map:
-            element_map[rule_to_element(rule)] = rule_to_element(map[rule])
+        if rule in map_:
+            element_map[rule_to_element(rule)] = rule_to_element(map_[rule])
     ''' translate the rule set '''
     for rule in rule_set:
-        if rule not in map:
+        if rule not in map_:
             break
-        temp = Rule(positionals=[], kvpairs={})
+        new_rule = Rule(positionals=[], kvpairs={})
         for pos in rule.positionals:
             '''
             Variables that cannot be mapped to a rule and Terms are stored as-is;
             Variables not in current mapping are ignored
             '''
             if isinstance(pos, Term) or not element_to_rule(pos, rule_set):
-                temp.positionals.append(pos)
+                new_rule.positionals.append(pos)
             elif pos in element_map:
-                temp.positionals.append(element_map[pos])
+                new_rule.positionals.append(element_map[pos])
+
         for k, v in rule.kvpairs.items():
-
             if isinstance(v, Term) or not element_to_rule(v, rule_set):
-
-                temp.kvpairs[k] = v
+                new_rule.kvpairs[k] = v
             elif v in element_map:
-
-                temp.kvpairs[k] = element_map[v]
-        mapped_rule_set.append(temp)
-        new_map[temp] = rule
+                new_rule.kvpairs[k] = element_map[v]
+                
+        mapped_rule_set.append(new_rule)
+        new_map[new_rule] = rule
     return mapped_rule_set, new_map
 
 
@@ -502,73 +333,60 @@ def parse_rule_set(fpath):
     """
     Load in and parse a set of rules from a file
     """
-    rs = []
-    description = ""
-    rule = ""
-    for line in open(fpath, 'r').readlines():
-        if line[0] == '#':
-            description = line[2:]
-        elif line[0] == '/':
-            assert True
-        elif line[0] == '-':
-            if rule != "":
-                rs.append((load_list_set(rule.replace("\n", "")), description.replace("\n", "")))
-                rule, description = "", ""
-        else:
-            rule += line
-    return rs
+    js, ruleset = json.load(open(fpath, 'r')), []
+    for entry in js:
+        ruleset.append((load_list_set(entry["rule"]), entry["description"]))
+    return ruleset #list of (list_set, description)
 
 
-def grade_rules(rs, parse):
+def grade_rules(ruleset, parse):
     """
     Given a parsed rule set and a given parse, find the rule that best matches the parse
     Currently outputs the score of the parse against every rule, as well as which rule it best matches
     """
-    max = 0
-    map = {}
+    max_score, mapping = 0, {}
     desc = ""
-    for t in rs:
-        r = t[0]
-        d = t[1]
-        s = score(r, parse)
-        if s[0] > max:
-            desc = d
-            max = s[0]
-            map = s[1]
-        log.info("Score for rule: " + d + " is: " + str(s[0]))
-    log.info("Match with rule: " + desc + " with a score of: " + str(max) + " with mapping: " + str(map))
+    for t in ruleset:
+        rule = t[0]
+        description, rule_score = t[1], score(rule, parse)
+        if rule_score[0] > max_score:
+            desc = description
+            max_score = rule_score[0]
+            mapping = rule_score[1]
+        print("Score for rule: " + description + " is: " + str(rule_score[0]))
+    print("Match with rule: " + desc + " with a score of: " + str(max_score) + " with mapping: " + str(mapping))
 
-def get_var_list(rule_set):
+
+def get_var_list(rule_set: List[Rule]) -> List[Variable]:
     '''
     Get the list of variables of a rule-set
     :param rule_set:
     :return:
     '''
-    l = []
+    var_list = []  # type: List[Variable]
     for rule in rule_set:
-        l += [p for p in rule.positionals if isinstance(p, Variable) and p not in l]
-        l += [v for k, v in rule.kvpairs.items() if isinstance(v, Variable) and v not in l]
-    return l
+        var_list += [p for p in rule.positionals if isinstance(p, Variable) and p not in var_list]
+        var_list += [v for k, v in rule.kvpairs.items() if isinstance(v, Variable) and v not in var_list]
+    return var_list
 
 
-def var_to_node(map):
+def var_to_node(map_: Dict[Rule, TripsNode]) -> (Dict[Variable, Term], Dict[Variable, TripsNode]):
     '''
     Produce variable-to-term and variable-to-node mapping
-    :param map:
+    :param map_:
     :return:
         var2term - dict
         var2node - dict
     '''
-    var2term = {}
-    var2node = {}
-    if not isinstance(map, dict):
+    var2term, var2node = {}, {}
+    if not isinstance(map_, dict):
         raise ValueError('Expect input to be dictionary')
-    for rule, tnode in map.items():
+    for rule, tnode in map_.items():
         var2term[rule_to_element(rule)] = rule_to_element(tnode)
         for k, v in rule.kvpairs.items():
-            if k in tnode.kvpairs:
+            if k in tnode.kvpairs and isinstance(v, Variable):
                 var2term[v] = tnode.kvpairs[k]
     for k, v in var2term.items():
-        var2node[k] = element_to_rule(k, map.keys())
+        var2node[k] = element_to_rule(k, map_.keys())
 
     return var2term, var2node
