@@ -39,50 +39,125 @@ where the intersection is the number of matches among positionals and kvpairs fo
 and the cardinality is `kvpairs.length + positionals.length`.
 
 
-## To-do
-
-
 ## Usage 
-If we start with string-formatted logical forms, e.g.
+The script test/trips_web_interface.py will use the ruleset in data/ruleset.json and match it against the output of trips-web of the given command line argument.
+Example usage: `trips_web_interface.py "John wants candy."`
 ```
-((SPEECH-ACT ?x SA_TELL :CONTENT ?!theme) 
- (F ?!theme ?what ?type :AGENT ?f)
- ```
- we need to load it into a set of rules using `load_list_set()`. 
-
- We are also able to pass a json object into that same function.
- 
- Do the same to a TRIPS parse, e.g.
-  ```
-((ONT::SPEECHACT ONT::V1617693 SA_TELL :CONTENT ONT::V1617530 :LEX ONT::BUY)
- (ONT::F ONT::V1617530 (:* ONT::PURCHASE W::BUY) :AGENT ONT::V1617694 :AFFECTED ONT::V1617576 :BENEFICIARY ONT::V1617534 :TENSE ONT::PRES :LEX ONT::BUY)
- (ONT::IMPRO ONT::V1617694 REFERENTIAL-SEM :PROFORM ONT::SUBJ)
- (ONT::PRO ONT::V1617534 (:* ONT::PERSON W::ME) :PROFORM ONT::ME :LEX ONT::ME :COREF ONT::USER)
- (ONT::A ONT::V1617576 (:* ONT::COMPUTER-TYPE W::LAPTOP) :LEX ONT::LAPTOP)
-)
-   ```
-Then passing the two loaded set to `score()` will give the score of the parse against the rule set.
-
-We are also able to load in a list of rules from a file and test a given parse against that list of rules to find the best match.
-
-The text file storing the list of rules must be formatted as follows:
+Score for rule: !x wants !y is: 1.0
+Score for rule: Does !x exist? is: 0.8888888888888888
+Score for rule: Does !x know !y? is: 0.9
+Score for rule: !x is !y is: 0.875
+Score for rule: !x eats !y is: 0.75
 ```
----
-# Description of pattern 1
-/ Comment 1
-/ Comment 2
-/ ...
-Pattern in logical form using Lisp-like syntax with variables in the format "?x" where x can be whatever you want.
----
-# Description of pattern 2
-...
+
+The matcher should be used in conjunction with trips-web in order to get logical form in json format (https://github.com/mrmechko/trips-web)
+The matcher takes in a logical form in json format, and matches that against a list of rules also in json format.
+Below is an example of how the sentence "Grass is green" would be formatted in json. 
 ```
+[
+  {
+    "V59225": {
+      "id": "V59225",
+      "indicator": "SPEECHACT",
+      "type": "SA_TELL",
+      "word": null,
+      "roles": {
+        "CONTENT": "#V59158",
+        "LEX": "IS"
+      },
+      "start": 0,
+      "end": 13
+    },
+    "V59158": {
+      "id": "V59158",
+      "indicator": "F",
+      "type": "HAVE-PROPERTY",
+      "word": "BE",
+      "roles": {
+        "NEUTRAL": "#V59149",
+        "FORMAL": "#V59172",
+        "TENSE": "PRES",
+        "LEX": "IS"
+      },
+      "start": 0,
+      "end": 13
+    },
+    "V59149": {
+      "id": "V59149",
+      "indicator": "THE",
+      "type": "GEOGRAPHIC-REGION",
+      "word": "GRASS",
+      "roles": {
+        "NAME-OF": "GRASS",
+        "LEX": "GRASS"
+      },
+      "start": 0,
+      "end": 6
+    },
+    "V59172": {
+      "id": "V59172",
+      "indicator": "F",
+      "type": "GREEN",
+      "word": "GREEN",
+      "roles": {
+        "FIGURE": "#V59149",
+        "SCALE": "GREEN*1--07--00",
+        "LEX": "GREEN"
+      },
+      "start": 9,
+      "end": 13
+    },
+    "root": "#V59225"
+  }
+]
+```
+ We load in a given parse by running the `load_list_set()` function on the json object.
+
+ We can also load in an entire ruleset by running `parse_rule_set()` on a json formatted ruleset. 
+
+Then you are able to pass the ruleset and parse into `score(ruleset, parse)` which will give the score of the parse against the rule set.
+
+The ruleset is a json object which holds a objects with information about the description of the rule, an example of the rule (which should always match 1.0 against that rule), and the rulse itself.
+```
+{
+    "description": "!x is !y",
+    "example": "The block is red",
+    "rule": [
+        {
+          "V41613": {
+            "id": "V41613",
+            "indicator": "SPEECHACT",
+            "type": "SA_TELL",
+            "word": null,
+            "roles": {
+                  "CONTENT": "#V41534",
+              "LEX": "ARE"
+            }
+          },
+          "V41534": {
+            "id": "V41534",
+            "indicator": "F",
+            "type": "HAVE-PROPERTY",
+            "word": "BE",
+            "roles": {
+              "NEUTRAL": "?x",
+              "FORMAL": "?y",
+              "TENSE": "PRES",
+              "LEX": "ARE"
+            }
+          },
+          "root": "V41613"
+        }
+     ]
+},
+```
+The above rule matches anything of the form "!x is !y", it has the example of "The block is red", and the rule is specified as having a NEUTRAL of ?x and a FORMAL of ?y.
+
+The best way to create a rule and add it to the ruleset is to take an existing parse (output by trips-web) and replace those elements that you want to be variables with names starting with '?' ('?theme', '?x', '?person').
 
 We can parse a file in this format using the `parse_rule_set()` function which returns a list of tuples that hold (parsed rule, description of rule).
 
 Then we can pass the output from the previous function and a parsed rule into the `grade_rules()` function which will return the description of the highest matching rule as well as the score of that match (1.0 for an exact match).
-
-### Input
 
 ## References
 Champin, Pierre-Antoine, and Christine Solnon. "Measuring the similarity of labeled graphs." International Conference on Case-Based Reasoning. Springer, Berlin, Heidelberg, 2003.
